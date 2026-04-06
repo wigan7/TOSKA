@@ -82,7 +82,7 @@ function buildShuffleMap(questionsArr) {
     });
 }
 
-function mulaiUjian() {
+async function mulaiUjian() {
     const nama = document.getElementById('siswa-nama').value;
     const kelas = document.getElementById('siswa-kelas').value;
     const sekolah = document.getElementById('siswa-sekolah').value;
@@ -147,26 +147,31 @@ function mulaiUjian() {
             else { showToast("Kode tidak ditemukan.", 'error'); }
         }, 500);
     } else {
-        if (kodeSoal) {
-            // Siswa input kode soal → ambil soal spesifik
-            fetchAppsScriptAPI('ambilSoal', kodeSoal)
-                .then(response => {
-                    toggleButtonLoading(btn, false);
-                    if (response.status === 'sukses') handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, kodeSoal);
-                    else showToast(response.message || "Kode Soal Tidak Ditemukan!", 'error');
-                })
-                .catch(err => { toggleButtonLoading(btn, false); showToast("Terjadi kesalahan server.", 'error'); console.error(err); });
-        } else {
-            // Siswa input kode ujian → ambil soal acak dalam kelompok ujian
-            fetchAppsScriptAPI('ambilSoalByKodeUjian', kodeUjian)
-                .then(response => {
-                    toggleButtonLoading(btn, false);
-                    if (response.status === 'sukses') {
-                        const resolvedKode = response.kode_soal_dipilih || kodeUjian;
-                        handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, resolvedKode);
-                    } else showToast(response.message || "Kode Ujian Tidak Ditemukan!", 'error');
-                })
-                .catch(err => { toggleButtonLoading(btn, false); showToast("Terjadi kesalahan server.", 'error'); console.error(err); });
+        try {
+            if (kodeSoal) {
+                // Siswa input kode soal → ambil soal spesifik
+                const response = await fetchAppsScriptAPI('ambilSoal', kodeSoal);
+                if (response.status === 'sukses') {
+                    handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, kodeSoal);
+                } else {
+                    showToast(response.message || "Kode Soal Tidak Ditemukan!", 'error');
+                }
+            } else {
+                // Siswa input kode ujian → ambil soal acak dalam kelompok ujian
+                const response = await fetchAppsScriptAPI('ambilSoalByKodeUjian', kodeUjian);
+                if (response.status === 'sukses') {
+                    const resolvedKode = response.kode_soal_dipilih || kodeUjian;
+                    handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, resolvedKode);
+                } else {
+                    showToast(response.message || "Kode Ujian Tidak Ditemukan!", 'error');
+                }
+            }
+        } catch (err) {
+            const message = err && err.message ? err.message : 'Terjadi kesalahan server.';
+            showToast(message, 'error');
+            console.error(err);
+        } finally {
+            toggleButtonLoading(btn, false);
         }
     }
 }

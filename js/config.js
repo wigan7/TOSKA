@@ -102,16 +102,26 @@ function normalizeScoringConfig(scoring) {
 
 // Helper: panggil API
 async function fetchAppsScriptAPI(action, ...args) {
+    const controller = new AbortController();
+    const timeoutMs = 25000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action, args }),
+            signal: controller.signal,
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
     } catch (error) {
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout: server terlalu lama merespons.');
+        }
         console.error("API Call Error:", error);
         throw error;
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
