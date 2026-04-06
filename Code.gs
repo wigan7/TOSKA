@@ -709,6 +709,16 @@ function analisisHasilByKodeUjian(kodeUjian, selectedSchools) {
 
     const averageScore = submissionCount > 0 ? (totalScore / submissionCount).toFixed(1) : '0.0';
 
+    // Gabungkan semua daftar nilai siswa dari tiap varian ke dalam satu array
+    const allStudentScores = [];
+    hasilPerSoal.forEach(function(h) {
+      if (h.status === 'sukses') {
+        (h.studentScores || []).forEach(function(s) {
+          allStudentScores.push(Object.assign({}, s, { kode_soal: h.kode_soal }));
+        });
+      }
+    });
+
     return {
       status: 'sukses',
       kode_ujian: kodeNormal,
@@ -716,6 +726,7 @@ function analisisHasilByKodeUjian(kodeUjian, selectedSchools) {
       totalSubmissions,
       averageScore,
       hasilPerSoal,
+      allStudentScores,
       availableSchools: [...allSchools].sort()
     };
   } catch (e) {

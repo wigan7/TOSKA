@@ -609,6 +609,13 @@ function handleMulaiAnalisis(selectedSchools = null) {
                     totalSubmissions: 5,
                     averageScore: 81.2,
                     availableSchools: ["Sekolah A", "Sekolah B"],
+                    allStudentScores: [
+                        { name: 'Budi', score: 90, school: "Sekolah A", noPeserta: "001", kode_soal: "DEV01" },
+                        { name: 'Ani',  score: 75, school: "Sekolah A", noPeserta: "002", kode_soal: "DEV01" },
+                        { name: 'Cici', score: 89, school: "Sekolah B", noPeserta: "003", kode_soal: "DEV01" },
+                        { name: 'Dodi', score: 70, school: "Sekolah A", noPeserta: "004", kode_soal: "DEV02" },
+                        { name: 'Evi',  score: 82, school: "Sekolah B", noPeserta: "005", kode_soal: "DEV02" }
+                    ],
                     hasilPerSoal: [
                         {
                             status: 'sukses',
@@ -676,123 +683,233 @@ function handleMulaiAnalisis(selectedSchools = null) {
 
 function renderAnalisisUjian(data) {
     const container = document.getElementById('analisis-results-container');
-    const { kode_ujian, jumlahVarian, totalSubmissions, averageScore, hasilPerSoal } = data;
+    const { kode_ujian, jumlahVarian, totalSubmissions, averageScore, hasilPerSoal, allStudentScores } = data;
     const hasilList = Array.isArray(hasilPerSoal) ? hasilPerSoal : [];
 
+    // Bangun daftar terpadu dari backend (allStudentScores) atau fallback dari hasilPerSoal
+    const unified = Array.isArray(allStudentScores) && allStudentScores.length > 0
+        ? allStudentScores
+        : hasilList.filter(h => h.status === 'sukses').flatMap(h =>
+            (h.studentScores || []).map(s => ({ ...s, kode_soal: h.kode_soal }))
+          );
+
+    // Distribusi nilai
+    const dist = { a: 0, b: 0, c: 0, d: 0 };
+    unified.forEach(s => {
+        if (s.score >= 90) dist.a++;
+        else if (s.score >= 75) dist.b++;
+        else if (s.score >= 60) dist.c++;
+        else dist.d++;
+    });
+    const total = unified.length || 1;
+    const passingCount = dist.a + dist.b + dist.c;
+    const passingRate = total > 0 ? Math.round((passingCount / total) * 100) : 0;
+
+    const distRows = [
+        { label: '≥ 90 (Sangat Baik)', count: dist.a, color: 'bg-emerald-500' },
+        { label: '75 – 89 (Baik)', count: dist.b, color: 'bg-blue-400' },
+        { label: '60 – 74 (Cukup)', count: dist.c, color: 'bg-yellow-400' },
+        { label: '< 60 (Perlu Perhatian)', count: dist.d, color: 'bg-red-400' },
+    ].map(r => {
+        const pct = total > 0 ? ((r.count / total) * 100).toFixed(0) : 0;
+        return `<div class="flex items-center gap-3 text-sm">
+            <span class="w-44 text-xs text-gray-600 shrink-0">${r.label}</span>
+            <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                <div class="${r.color} h-5 rounded-full flex items-center justify-end pr-2 transition-all" style="width:${pct}%">
+                    ${pct > 12 ? `<span class="text-white text-xs font-bold">${r.count}</span>` : ''}
+                </div>
+            </div>
+            <span class="text-xs font-bold text-gray-500 w-16 text-right shrink-0">${pct}%${pct <= 12 && r.count > 0 ? ` (${r.count})` : ''}</span>
+        </div>`;
+    }).join('');
+
     let html = `
-        <h2 class="text-xl font-bold text-gray-800">Analisis Kode Ujian: <span class="text-blue-600">${kode_ujian}</span></h2>
-        <div class="grid md:grid-cols-3 gap-4">
-            <div class="bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4">
-                <div class="bg-blue-100 text-blue-600 p-3 rounded-full"><i class="fas fa-layer-group text-xl"></i></div>
-                <div><p class="text-sm font-bold text-gray-500">Varian Soal</p><p class="text-2xl font-extrabold text-gray-800">${jumlahVarian}</p></div>
+        <!-- Header -->
+        <div class="flex items-center justify-between flex-wrap gap-2">
+            <h2 class="text-xl font-bold text-gray-800">Analisis Ujian: <span class="text-blue-600 font-mono">${kode_ujian}</span></h2>
+            <button onclick="exportNilaiUjianXLS()" class="bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 transition shadow-sm">
+                <i class="fas fa-file-excel"></i> Export Semua Nilai
+            </button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border flex items-center gap-3">
+                <div class="bg-blue-100 text-blue-600 p-2.5 rounded-full shrink-0"><i class="fas fa-users"></i></div>
+                <div><p class="text-xs font-bold text-gray-500">Total Peserta</p><p class="text-2xl font-extrabold text-gray-800">${totalSubmissions}</p></div>
             </div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4">
-                <div class="bg-purple-100 text-purple-600 p-3 rounded-full"><i class="fas fa-users text-xl"></i></div>
-                <div><p class="text-sm font-bold text-gray-500">Total Pengerjaan</p><p class="text-2xl font-extrabold text-gray-800">${totalSubmissions}</p></div>
+            <div class="bg-yellow-50 p-4 rounded-xl shadow-sm border border-yellow-200 flex items-center gap-3">
+                <div class="bg-yellow-100 text-yellow-600 p-2.5 rounded-full shrink-0"><i class="fas fa-chart-bar"></i></div>
+                <div><p class="text-xs font-bold text-yellow-700">Rata-Rata</p><p class="text-2xl font-extrabold text-yellow-700">${averageScore}</p></div>
             </div>
-            <div class="bg-yellow-50 p-4 rounded-xl shadow-sm border border-yellow-200 flex items-center gap-4">
-                <div class="bg-yellow-100 text-yellow-600 p-3 rounded-full"><i class="fas fa-star-half-alt text-xl"></i></div>
-                <div><p class="text-sm font-bold text-yellow-800">Rata-Rata Gabungan</p><p class="text-2xl font-extrabold text-yellow-700">${averageScore}</p></div>
+            <div class="bg-green-50 p-4 rounded-xl shadow-sm border border-green-200 flex items-center gap-3">
+                <div class="bg-green-100 text-green-600 p-2.5 rounded-full shrink-0"><i class="fas fa-check-circle"></i></div>
+                <div><p class="text-xs font-bold text-green-700">Kelulusan (≥60)</p><p class="text-2xl font-extrabold text-green-700">${passingRate}%</p></div>
+            </div>
+            <div class="bg-purple-50 p-4 rounded-xl shadow-sm border border-purple-200 flex items-center gap-3">
+                <div class="bg-purple-100 text-purple-600 p-2.5 rounded-full shrink-0"><i class="fas fa-layer-group"></i></div>
+                <div><p class="text-xs font-bold text-purple-700">Varian Soal</p><p class="text-2xl font-extrabold text-purple-700">${jumlahVarian}</p></div>
             </div>
         </div>
-        <div class="space-y-3">
-            <h3 class="text-lg font-bold text-gray-700 border-b pb-2">Hasil Per Kode Soal</h3>`;
+
+        <!-- Score Distribution -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border">
+            <h3 class="font-bold text-gray-700 mb-3 text-sm">Distribusi Nilai</h3>
+            <div class="space-y-2">${distRows}</div>
+        </div>
+
+        <!-- Unified Student Table -->
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div class="flex flex-wrap items-center justify-between gap-2 p-4 border-b bg-gray-50">
+                <h3 class="font-bold text-gray-700">Daftar Nilai Seluruh Peserta</h3>
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs text-gray-500 font-bold">Urutkan:</span>
+                    <button data-ujian-sort="name"       class="sort-btn-ujian bg-blue-600 text-white    text-xs font-bold px-3 py-1.5 rounded-full">Nama</button>
+                    <button data-ujian-sort="score_desc" class="sort-btn-ujian bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full">Nilai ↓</button>
+                    <button data-ujian-sort="score_asc"  class="sort-btn-ujian bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full">Nilai ↑</button>
+                    <button data-ujian-sort="school"     class="sort-btn-ujian bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full">Sekolah</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto max-h-[480px] overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead class="sticky top-0 bg-gray-100 z-10">
+                        <tr class="text-left font-bold text-gray-600">
+                            <th class="p-2 text-center w-10">No.</th>
+                            <th class="p-2 border-l w-28">No. Peserta</th>
+                            <th class="p-2 border-l">Nama Siswa</th>
+                            <th class="p-2 border-l w-44">Asal Sekolah</th>
+                            <th class="p-2 border-l w-24 text-center">Kode Soal</th>
+                            <th class="p-2 border-l w-16 text-center">Nilai</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ujian-scores-tbody">${renderUjianStudentRows(unified)}</tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Per-Varian Accordion (Detail Sekunder) -->
+        <div>
+            <h3 class="text-base font-bold text-gray-700 border-b pb-2 mb-3">Detail Per Varian Soal</h3>
+            <div class="space-y-2">`;
 
     hasilList.forEach((h, idx) => {
         if (h.status !== 'sukses') {
-            html += `<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm font-semibold flex items-center gap-2">
+            html += `<div class="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm font-semibold flex items-center gap-2">
                 <i class="fas fa-exclamation-triangle"></i>
-                <span class="font-mono font-bold">${h.kode_soal}</span>: ${h.message || 'Belum ada siswa yang mengerjakan.'}
+                <span class="font-mono">${h.kode_soal}</span>: ${h.message || 'Belum ada siswa yang mengerjakan.'}
             </div>`;
             return;
         }
 
         const panelId = `ujian-panel-${idx}`;
         const avgColor = parseFloat(h.averageScore) >= 70 ? 'text-green-600' : 'text-red-500';
-
-        // Butir soal difficulties
-        let hardest = { text: 'N/A', incorrectCount: -1 }, easiest = { text: 'N/A', correctCount: -1 };
+        let hardest = { text: 'N/A', incorrectCount: -1 };
         (h.detail || []).forEach((item, i) => {
             if (item.incorrectCount > hardest.incorrectCount) hardest = { text: `#${i + 1}`, incorrectCount: item.incorrectCount };
-            if (item.correctCount >= easiest.correctCount) easiest = { text: `#${i + 1}`, correctCount: item.correctCount };
         });
 
         html += `
         <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <button onclick="toggleUjianPanel('${panelId}')" class="w-full p-4 text-left flex flex-wrap items-center justify-between gap-3 hover:bg-gray-50 transition">
-                <div class="flex items-center gap-3">
-                    <span class="bg-blue-100 text-blue-700 font-mono font-bold text-sm px-3 py-1 rounded-lg">${h.kode_soal}</span>
-                    <span class="font-bold text-gray-800">${h.judul}</span>
+            <button onclick="toggleUjianPanel('${panelId}')" class="w-full p-3 text-left flex flex-wrap items-center justify-between gap-2 hover:bg-gray-50 transition text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="bg-blue-100 text-blue-700 font-mono font-bold text-xs px-2 py-1 rounded">${h.kode_soal}</span>
+                    <span class="font-semibold text-gray-700">${h.judul}</span>
                 </div>
-                <div class="flex items-center gap-4 text-sm">
-                    <span class="text-gray-500"><i class="fas fa-users mr-1"></i>${h.totalSubmissions} siswa</span>
+                <div class="flex items-center gap-3 text-xs text-gray-500">
+                    <span><i class="fas fa-users mr-1"></i>${h.totalSubmissions} peserta</span>
                     <span class="font-bold ${avgColor}">Rata-rata: ${h.averageScore}</span>
-                    <span class="text-xs text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>Sulit: ${hardest.text}</span>
+                    ${hardest.incorrectCount > 0 ? `<span class="text-red-500"><i class="fas fa-exclamation-circle mr-1"></i>Sulit: ${hardest.text}</span>` : ''}
                     <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200" id="icon-${panelId}"></i>
                 </div>
             </button>
             <div id="${panelId}" class="hidden border-t">
-                <div class="p-4 space-y-5">
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="font-bold text-gray-600 text-sm">Daftar Nilai Siswa</h4>
-                            <button onclick="exportNilaiXLSFromUjian('${idx}')" class="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-green-700 flex items-center gap-1 transition"><i class="fas fa-file-excel"></i> Export</button>
-                        </div>
-                        <div class="overflow-x-auto max-h-72 overflow-y-auto border rounded-lg">
-                            <table class="w-full text-sm">
-                                <thead class="sticky top-0 bg-gray-50 z-10">
-                                    <tr class="text-left font-bold text-gray-600">
-                                        <th class="p-2 text-center w-10">No.</th>
-                                        <th class="p-2 border-l w-28">No. Peserta</th>
-                                        <th class="p-2 border-l">Nama Siswa</th>
-                                        <th class="p-2 border-l w-40">Asal Sekolah</th>
-                                        <th class="p-2 border-l text-center w-16">Nilai</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${(h.studentScores || []).map((s, i) => {
-                                        const c = s.score < 70 ? 'text-red-600' : s.score <= 79 ? 'text-yellow-600' : 'text-green-600';
-                                        return `<tr class="border-b last:border-0 hover:bg-gray-50">
-                                            <td class="p-2 text-center text-gray-400">${i + 1}</td>
-                                            <td class="p-2 font-mono text-xs text-center border-l">${s.noPeserta || '-'}</td>
-                                            <td class="p-2 font-semibold border-l">${s.name}</td>
-                                            <td class="p-2 text-xs text-gray-500 border-l">${s.school}</td>
-                                            <td class="p-2 text-center font-bold text-lg border-l ${c}">${s.score}</td>
-                                        </tr>`;
-                                    }).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-gray-600 text-sm mb-3 border-b pb-2">Rincian Per Butir Soal</h4>
-                        <div class="space-y-3">
-                            ${(h.detail || []).map((item, i) => {
-                                const total = h.totalSubmissions || 1;
-                                const incorrectPct = ((item.incorrectCount / total) * 100).toFixed(0);
-                                const correctPct   = ((item.correctCount   / total) * 100).toFixed(0);
-                                return `<div class="bg-gray-50 border rounded-lg p-3">
-                                    <div class="flex gap-3 items-start">
-                                        <span class="font-bold text-gray-400 shrink-0">#${i + 1}</span>
-                                        <div class="flex-1">
-                                            <p class="text-sm text-gray-700 mb-2">${item.text || '<i>Teks tidak tersedia</i>'}</p>
-                                            <div class="flex justify-between text-xs font-bold mb-1"><span class="text-red-600">Salah: ${item.incorrectCount}</span><span class="text-green-600">Benar: ${item.correctCount}</span></div>
-                                            <div class="w-full bg-gray-200 rounded-full h-3 flex overflow-hidden"><div class="bg-red-400 h-3" style="width:${incorrectPct}%"></div><div class="bg-green-400 h-3" style="width:${correctPct}%"></div></div>
-                                        </div>
-                                    </div>
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>
+                <div class="p-4 space-y-2">
+                    <h4 class="font-bold text-gray-500 text-xs uppercase tracking-wide mb-3">Rincian Per Butir Soal</h4>
+                    ${(h.detail || []).map((item, i) => {
+                        const tot = h.totalSubmissions || 1;
+                        const incorrectPct = ((item.incorrectCount / tot) * 100).toFixed(0);
+                        const correctPct   = ((item.correctCount   / tot) * 100).toFixed(0);
+                        return `<div class="bg-gray-50 border rounded-lg p-3">
+                            <div class="flex gap-2 items-start">
+                                <span class="font-bold text-gray-400 text-sm shrink-0 w-6">#${i + 1}</span>
+                                <div class="flex-1">
+                                    <p class="text-sm text-gray-700 mb-2">${item.text || '<i>—</i>'}</p>
+                                    <div class="flex justify-between text-xs font-bold mb-1"><span class="text-red-600">Salah: ${item.incorrectCount}</span><span class="text-green-600">Benar: ${item.correctCount}</span></div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3 flex overflow-hidden"><div class="bg-red-400 h-3" style="width:${incorrectPct}%"></div><div class="bg-green-400 h-3" style="width:${correctPct}%"></div></div>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('')}
                 </div>
             </div>
         </div>`;
     });
 
-    html += '</div>';
+    html += `</div></div>`;
     container.innerHTML = html;
-    // Simpan hasilPerSoal untuk export per-kode-soal
+
+    // Simpan state global untuk sort & export
     window._ujianAnalisisData = hasilList;
+    window._ujianAllStudents = unified;
+
+    // Event listener untuk tombol sort tabel terpadu
+    container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.sort-btn-ujian');
+        if (!btn || !window._ujianAllStudents) return;
+        container.querySelectorAll('.sort-btn-ujian').forEach(b => {
+            b.classList.remove('bg-blue-600', 'text-white');
+            b.classList.add('bg-gray-200', 'text-gray-700');
+        });
+        btn.classList.add('bg-blue-600', 'text-white');
+        btn.classList.remove('bg-gray-200', 'text-gray-700');
+        let sorted = [...window._ujianAllStudents];
+        const s = btn.dataset.ujianSort;
+        if (s === 'name')       sorted.sort((a, b) => a.name.localeCompare(b.name));
+        else if (s === 'score_desc') sorted.sort((a, b) => b.score - a.score);
+        else if (s === 'score_asc')  sorted.sort((a, b) => a.score - b.score);
+        else if (s === 'school')     sorted.sort((a, b) => (a.school || '').localeCompare(b.school || ''));
+        const tbody = document.getElementById('ujian-scores-tbody');
+        if (tbody) tbody.innerHTML = renderUjianStudentRows(sorted);
+    });
+}
+
+function renderUjianStudentRows(list) {
+    if (!list || list.length === 0) return '<tr><td colspan="6" class="text-center p-4 text-gray-400">Belum ada data nilai</td></tr>';
+    return list.map((s, i) => {
+        const c = s.score >= 90 ? 'text-emerald-600' : s.score >= 75 ? 'text-green-600' : s.score >= 60 ? 'text-yellow-600' : 'text-red-600';
+        return `<tr class="border-b last:border-0 hover:bg-gray-50">
+            <td class="p-2 text-center text-gray-400">${i + 1}</td>
+            <td class="p-2 font-mono text-xs text-center border-l">${s.noPeserta || '-'}</td>
+            <td class="p-2 font-semibold border-l">${s.name}</td>
+            <td class="p-2 text-xs text-gray-500 border-l">${s.school || '-'}</td>
+            <td class="p-2 text-center border-l"><span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-100">${s.kode_soal || '-'}</span></td>
+            <td class="p-2 text-center font-bold text-lg border-l ${c}">${s.score}</td>
+        </tr>`;
+    }).join('');
+}
+
+function exportNilaiUjianXLS() {
+    const list = window._ujianAllStudents;
+    if (!list || list.length === 0) return showToast("Tidak ada data untuk diekspor", "error");
+
+    const esc = str => String(str || '-').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>table{border-collapse:collapse}th{font-weight:bold;background:#f3f4f6;border:1px solid #000;padding:5px}td{border:1px solid #000;padding:5px}.center{text-align:center}.text{mso-number-format:"\\@"}</style></head><body><table><thead><tr><th>No</th><th>No Peserta</th><th>Nama Siswa</th><th>Asal Sekolah</th><th>Kode Soal</th><th>Nilai</th></tr></thead><tbody>`;
+    list.forEach((s, i) => {
+        tableHtml += `<tr><td class="center">${i + 1}</td><td class="text">${esc(s.noPeserta)}</td><td>${esc(s.name)}</td><td>${esc(s.school)}</td><td>${esc(s.kode_soal)}</td><td class="center">${s.score || 0}</td></tr>`;
+    });
+    tableHtml += `</tbody></table></body></html>`;
+
+    const kodeUjian = (document.getElementById('kode-ujian-analisis')?.value || 'UJIAN').trim().toUpperCase();
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Nilai_${kodeUjian}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("Berhasil mengekspor data ke Excel!", "success");
 }
 
 function toggleUjianPanel(panelId) {
@@ -801,28 +918,6 @@ function toggleUjianPanel(panelId) {
     if (!panel) return;
     panel.classList.toggle('hidden');
     if (icon) icon.classList.toggle('rotate-180');
-}
-
-function exportNilaiXLSFromUjian(idx) {
-    const h = (window._ujianAnalisisData || [])[idx];
-    if (!h || !h.studentScores || h.studentScores.length === 0) return showToast("Tidak ada data nilai untuk diekspor", "error");
-
-    let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>table{border-collapse:collapse}th{font-weight:bold;background:#f3f4f6;border:1px solid #000;padding:5px}td{border:1px solid #000;padding:5px}.center{text-align:center}.text{mso-number-format:"\\@"}</style></head><body><table><thead><tr><th>No</th><th>No Peserta</th><th>Nama Siswa</th><th>Asal Sekolah</th><th>Nilai</th></tr></thead><tbody>`;
-    h.studentScores.forEach((s, i) => {
-        const esc = str => String(str || '-').replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        tableHtml += `<tr><td class="center">${i + 1}</td><td class="text">${esc(s.noPeserta)}</td><td>${esc(s.name)}</td><td>${esc(s.school)}</td><td class="center">${s.score || 0}</td></tr>`;
-    });
-    tableHtml += `</tbody></table></body></html>`;
-    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
-    const url  = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Nilai_${h.kode_soal}_${(h.judul || '').replace(/[^a-zA-Z0-9_-]/g, '_')}.xls`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    showToast("Berhasil mengekspor data ke Excel!", "success");
 }
 
 function renderFilterSekolah(schools) {
