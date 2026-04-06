@@ -112,5 +112,12 @@ function navTo(layerId) {
     document.querySelectorAll('[id^="layer-"]').forEach(el => el.classList.add('hidden'));
     const target = document.getElementById(layerId);
     if (target) target.classList.remove('hidden');
+
+    const dashboardSaveBar = document.getElementById('dashboard-save-bar');
+    if (dashboardSaveBar) {
+        const shouldShowSaveBar = layerId === 'layer-dashboard-guru';
+        dashboardSaveBar.classList.toggle('hidden', !shouldShowSaveBar);
+    }
+
     if (layerId !== 'layer-siswa-exam') window.scrollTo(0, 0);
 }
