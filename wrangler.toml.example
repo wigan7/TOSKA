@@ -1,0 +1,26 @@
+# Konfigurasi untuk Cloudflare Pages (Optional)
+# Rename file ini menjadi 'wrangler.toml' jika ingin menggunakan wrangler untuk deploy
+
+name = "tos-mukti"
+type = "javascript"
+main = "dist/index.html"
+compatibility_date = "2024-01-01"
+
+# Development environment
+[env.development]
+vars = { VITE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxn3cBxEFFf0jkBYNZNfXc4FkzdVE-WcIJmisniS98HHT3qjFYQ5b72er439zIG_xg8/exec" }
+
+# Production environment
+[env.production]
+vars = { VITE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec" }
+
+# Build configuration
+[build]
+command = "npm run build"
+cwd = "./"
+watch_paths = ["src/**/*.{js,ts,html,css}", "index.html", "css/**/*.css", "js/**/*.js"]
+
+# Cloudflare Pages routes
+[[routes]]
+pattern = "example.com/*"
+zone_name = "example.com"

@@ -1,0 +1,83 @@
+/* ===== CUSTOM APP STYLES ===== */
+
+/* Fallback utilitas dasar jika Tailwind CDN gagal termuat */
+.hidden { display: none !important; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+/* Animations */
+.animate-pop { animation: pop 0.3s ease-out; }
+@keyframes pop {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pulse-fast { animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+}
+
+/* Mencegah select text berlebihan di HP */
+.no-select {
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Toast Animation */
+.toast-enter { transform: translateX(100%); opacity: 0; }
+.toast-enter-active { transform: translateX(0); opacity: 1; transition: all 300ms ease-out; }
+.toast-exit { opacity: 1; }
+.toast-exit-active { opacity: 0; transition: all 300ms ease-in; }
+
+/* Panel Animation */
+.panel-enter { opacity: 0; }
+.panel-enter-active { opacity: 1; transition: opacity 200ms ease-out; }
+.panel-content-enter { transform: translateY(100%); }
+.panel-content-enter-active { transform: translateY(0); transition: transform 250ms ease-out; }
+
+/* Image Input Tabs */
+.image-tab-btn {
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    margin-bottom: -1px;
+    background-color: transparent;
+    color: #6b7280;
+    font-weight: 700;
+}
+.image-tab-btn.active-tab {
+    border-color: #d1d5db;
+    background-color: white;
+    border-radius: 6px 6px 0 0;
+    color: #0ea5e9;
+}
+
+/* ===== MOBILE / VIEWPORT FIX ===== */
+#layer-siswa-exam { height: 100dvh; height: 100vh; }
+@supports (height: 100dvh) { #layer-siswa-exam { height: 100dvh; } }
+
+.safe-area-pb { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+.safe-area-pt { padding-top: max(0px, env(safe-area-inset-top)); }
+#layer-siswa-exam>div:last-child { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+
+@media (max-width: 640px) {
+    #btn-prev, #btn-next, #btn-finish { min-width: 52px; min-height: 52px; font-size: 1rem; }
+    #btn-open-nav-panel { min-height: 44px; }
+    #scrollable-content { padding: 12px; }
+    #question-display-area { padding-bottom: 16px; }
+    .prose, .question-text { font-size: 0.9375rem; line-height: 1.65; }
+}
+
+#layer-siswa-login { overflow-y: auto; align-items: flex-start; padding-top: 1.5rem; padding-bottom: 1.5rem; }
+@media (min-height: 700px) { #layer-siswa-login { align-items: center; } }
+
+#question-display-area img { max-width: 100%; height: auto; border-radius: 8px; }
+
+/* By default hidden on screen */
+#print-area { display: none; }

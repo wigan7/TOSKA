@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TOSKA Tes Online Sekolah Kaliwungu</title>
+    <!-- Tailwind CSS with Typography Plugin for passages -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <!-- Font Awesome untuk Ikon -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Nunito (Ramah Anak) -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <!-- Quill.js -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Nunito', 'sans-serif'] },
+                    colors: {
+                        sd: {
+                            primary: '#0ea5e9',
+                            dark: '#0369a1',
+                            light: '#e0f2fe',
+                            accent: '#facc15',
+                            danger: '#ef4444',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/print.css">
+</head>
+
+<body class="bg-sd-light text-gray-800 font-sans selection:bg-sd-primary selection:text-white overflow-x-hidden">
+
+    <!-- LAYER 1: HOME (MENU UTAMA) -->
+    <div id="layer-home" class="min-h-screen flex flex-col items-center justify-center p-4">
+        <div
+            class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md text-center animate-pop border-b-8 border-sd-primary">
+            <img src="https://ik.imagekit.io/wigan7/TOSKA%20(3).png" alt="Logo TOSKA"
+                class="w-24 h-24 md:w-32 md:h-32 mx-auto mb-4 rounded-xl border-4 border-sd-accent shadow-md object-cover">
+            <h1 class="text-2xl md:text-3xl font-extrabold text-sd-dark mb-1">TOSKA Tes Online Sekolah Kaliwungu</h1>
+            <p class="text-gray-500 mb-8 font-semibold text-sm md:text-base">Platform ujian online sekolah</p>
+            <div class="space-y-4">
+                <button id="btn-goto-siswa-login" onclick="if (typeof navTo === 'function') { navTo('layer-siswa-login'); } else { var layers = document.querySelectorAll('[id^=\'layer-\']'); for (var i = 0; i < layers.length; i++) { layers[i].classList.add('hidden'); } var target = document.getElementById('layer-siswa-login'); if (target) target.classList.remove('hidden'); }"
+                    class="w-full bg-sd-primary hover:bg-sd-dark text-white font-bold py-4 px-6 rounded-2xl shadow-lg transform transition hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 text-lg">
+                    <i class="fas fa-user-graduate text-2xl"></i> MASUK SEBAGAI SISWA
+                </button>
+                <button id="btn-open-guru-login" onclick="if (typeof openGuruLogin === 'function') { openGuruLogin(); } else { const el = document.getElementById('layer-login-guru'); if (el) el.classList.remove('hidden'); }"
+                    class="w-full bg-white border-2 border-sd-primary text-sd-primary hover:bg-sd-light font-bold py-3 px-6 rounded-2xl shadow-sm transform transition hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fas fa-chalkboard-teacher text-xl"></i> LOGIN GURU
+                </button>
+            </div>
+            <div class="mt-8 text-xs text-gray-400">&copy; TOSMUKTI 2026 by Mr.W MUKTI</div>
+        </div>
+    </div>
+
+    <!-- LAYER 2: LOGIN GURU (MODAL) -->
+    <div id="layer-login-guru"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-pop">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-sd-dark">Login Guru</h2>
+                <button id="btn-close-guru-login" onclick="if (typeof closeGuruLogin === 'function') { closeGuruLogin(); } else { const el = document.getElementById('layer-login-guru'); if (el) el.classList.add('hidden'); }" class="text-gray-400 hover:text-red-500"><i
+                        class="fas fa-times fa-lg"></i></button>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-bold mb-2 text-gray-600">Password Admin</label>
+                <input type="password" id="input-pass-guru"
+                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-sd-primary transition"
+                    placeholder="Masukkan password...">
+            </div>
+            <button id="btn-proses-guru-login" onclick="if (typeof prosesLoginGuru === 'function') { prosesLoginGuru(event); }"
+                class="w-full bg-sd-dark text-white font-bold py-3 rounded-xl hover:bg-blue-800 transition shadow-md flex items-center justify-center gap-2">
+                <span class="btn-text">MASUK DASHBOARD</span>
+                <i class="fas fa-spinner fa-spin btn-spinner hidden"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- LAYER GURU MENU -->
+    <div id="layer-guru-menu" class="hidden min-h-screen flex flex-col items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-lg text-center animate-pop">
+            <h1 class="text-2xl font-extrabold text-sd-dark mb-2">Menu Guru</h1>
+            <p class="text-gray-500 mb-8">Pilih aktivitas yang ingin Anda lakukan.</p>
+            <div class="grid md:grid-cols-3 gap-6">
+                <button id="btn-goto-buat-soal"
+                    class="bg-sd-light border-2 border-sd-primary p-6 rounded-2xl text-sd-dark hover:bg-sd-primary hover:text-white transition-all duration-300 transform hover:-translate-y-2 shadow-lg flex flex-col items-center justify-center text-center">
+                    <i class="fas fa-edit text-4xl mb-3"></i>
+                    <h2 class="font-bold text-lg leading-tight">Buat / Edit Soal</h2>
+                </button>
+                <button id="btn-goto-analisis"
+                    class="bg-blue-50 border-2 border-blue-500 p-6 rounded-2xl text-blue-800 hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:-translate-y-2 shadow-lg flex flex-col items-center justify-center text-center">
+                    <i class="fas fa-chart-line text-4xl mb-3"></i>
+                    <h2 class="font-bold text-lg leading-tight">Analisis Hasil</h2>
+                </button>
+                <button id="btn-goto-cetak"
+                    class="bg-purple-50 border-2 border-purple-500 p-6 rounded-2xl text-purple-800 hover:bg-purple-600 hover:text-white transition-all duration-300 transform hover:-translate-y-2 shadow-lg flex flex-col items-center justify-center text-center">
+                    <i class="fas fa-print text-4xl mb-3"></i>
+                    <h2 class="font-bold text-lg leading-tight">Cetak Berkas</h2>
+                </button>
+            </div>
+            <button id="btn-guru-menu-logout" class="mt-8 text-red-500 font-bold text-sm hover:underline">
+                <i class="fas fa-sign-out-alt"></i> Keluar dari Mode Guru
+            </button>
+        </div>
+    </div>
+
+    <!-- LAYER 3: DASHBOARD GURU (PEMBUAT SOAL) -->
+    <div id="layer-dashboard-guru" class="hidden min-h-screen pb-20 relative">
+        <div id="dashboard-loading-overlay"
+            class="absolute inset-0 bg-white/80 z-30 hidden flex-col items-center justify-center text-center">
+            <i class="fas fa-spinner fa-spin text-4xl text-sd-primary"></i>
+            <p class="mt-3 font-bold text-gray-600 text-lg">Menyimpan Data Soal...</p>
+            <p class="text-sm text-gray-500">Mohon tunggu sebentar.</p>
+        </div>
+        <div
+            class="bg-white shadow-md sticky top-0 z-20 px-4 py-3 flex justify-between items-center border-b-4 border-sd-accent">
+            <div class="flex items-center gap-3">
+                <button id="btn-back-to-guru-menu-1" class="text-gray-500 hover:text-sd-primary"><i
+                        class="fas fa-arrow-left"></i> Kembali</button>
+                <div class="flex items-center gap-2">
+                    <div class="bg-sd-primary text-white p-2 rounded-lg"><i class="fas fa-edit"></i></div>
+                    <h1 class="font-bold text-lg text-gray-700 leading-tight">Buat Soal</h1>
+                </div>
+            </div>
+            <button id="btn-guru-logout" class="text-red-500 font-bold text-sm hover:bg-red-50 px-3 py-1 rounded-lg">
+                <i class="fas fa-sign-out-alt"></i> Keluar
+            </button>
+        </div>
+        <div class="max-w-3xl mx-auto p-4 space-y-6">
+            <div
+                class="bg-blue-50 border border-blue-200 p-4 rounded-xl flex flex-col md:flex-row gap-3 items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-blue-800 text-sm">MODE OPERASI</h3>
+                    <p id="status-mode-text" class="text-xs text-gray-600">Sedang membuat soal baru.</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <div class="flex-1 md:w-48 relative">
+                        <input type="text" id="input-kode-edit"
+                            class="w-full pl-8 pr-2 py-2 text-sm border rounded-lg focus:border-sd-primary outline-none uppercase font-mono"
+                            placeholder="Kode Soal Edit">
+                        <i class="fas fa-search absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                    </div>
+                    <button id="btn-muat-edit"
+                        class="bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center w-20">
+                        <span class="btn-text">MUAT</span>
+                        <i class="fas fa-spinner fa-spin btn-spinner hidden"></i>
+                    </button>
+                    <button id="btn-reset-mode"
+                        class="bg-gray-200 text-gray-600 text-xs font-bold px-3 py-2 rounded-lg hover:bg-gray-300 transition hidden">BATAL</button>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-500 mb-4 border-b pb-2">INFORMASI UJIAN</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="col-span-1">
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Judul Ujian</label>
+                        <input type="text" id="judul-ujian"
+                            class="w-full p-2 border rounded-lg focus:border-sd-primary outline-none"
+                            placeholder="Cth: Ulangan Harian MTK">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-600 mb-1">Kode Soal</label>
+                            <input type="text" id="kode-soal-buat"
+                                class="w-full p-2 border rounded-lg focus:border-sd-primary outline-none uppercase font-mono"
+                                placeholder="MTK01">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-600 mb-1">Waktu (Menit)</label>
+                            <input type="number" id="durasi-ujian"
+                                class="w-full p-2 border rounded-lg focus:border-sd-primary outline-none"
+                                placeholder="60" value="60">
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Kode Ujian <span class="font-normal text-gray-400">(Opsional)</span></label>
+                        <input type="text" id="kode-ujian-buat"
+                            class="w-full p-2 border rounded-lg focus:border-sd-primary outline-none uppercase font-mono"
+                            placeholder="Cth: UJIANMTK — Kosongkan jika soal tidak dikelompokkan">
+                        <p class="mt-1 text-xs text-gray-400">Isi jika soal ini merupakan bagian dari suatu ujian. Siswa cukup input kode ujian untuk mendapat soal acak dalam kelompok ini.</p>
+                    </div>
+                </div>
+                    <h4 class="font-bold text-gray-600 mb-3 text-sm">PEDOMAN PENSKORAN (MANUAL)</h4>
+                    <div class="grid md:grid-cols-3 gap-4 text-xs">
+                        <div class="bg-sky-50 border border-sky-200 rounded-xl p-3 space-y-2">
+                            <p class="font-extrabold text-sky-700">PG</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label>Benar <input type="number" step="0.1" id="score-pg-correct" value="1" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Salah <input type="number" step="0.1" id="score-pg-wrong" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Kosong <input type="number" step="0.1" id="score-pg-blank" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Maks/Soal <input type="number" step="0.1" id="score-pg-max" value="1" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Min/Soal <input type="number" step="0.1" id="score-pg-min" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                            </div>
+                        </div>
+                        <div class="bg-purple-50 border border-purple-200 rounded-xl p-3 space-y-2">
+                            <p class="font-extrabold text-purple-700">PG Kompleks</p>
+                            <label>Mode
+                                <select id="score-pgk-mode" class="w-full mt-1 p-1.5 border rounded bg-white">
+                                    <option value="manual">Manual</option>
+                                    <option value="simple">Simple</option>
+                                </select>
+                            </label>
+                            <div id="score-pgk-manual-fields" class="grid grid-cols-2 gap-2">
+                                <label>Base <input type="number" step="0.1" id="score-pgk-base" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>+ Pilihan Benar <input type="number" step="0.1" id="score-pgk-correct" value="1" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>+ Pilihan Salah <input type="number" step="0.1" id="score-pgk-wrong" value="-1" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Maks/Soal <input type="number" step="0.1" id="score-pgk-max" value="3" class="w-full mt-1 p-1.5 border rounded"></label>
+                            </div>
+                            <div id="score-pgk-simple-fields" class="hidden grid grid-cols-2 gap-2">
+                                <label>Benar Semua <input type="number" step="0.1" id="score-pgk-simple-all-correct" value="3" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Benar Sebagian <input type="number" step="0.1" id="score-pgk-simple-partial" value="2" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Salah Semua <input type="number" step="0.1" id="score-pgk-simple-all-wrong" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Tidak Menjawab <input type="number" step="0.1" id="score-pgk-simple-blank" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                            </div>
+                            <label>Min/Soal <input type="number" step="0.1" id="score-pgk-min" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                        </div>
+                        <div class="bg-green-50 border border-green-200 rounded-xl p-3 space-y-2">
+                            <p class="font-extrabold text-green-700">Benar/Salah</p>
+                            <label>Mode
+                                <select id="score-bs-mode" class="w-full mt-1 p-1.5 border rounded bg-white">
+                                    <option value="manual">Manual</option>
+                                    <option value="simple">Simple</option>
+                                </select>
+                            </label>
+                            <div id="score-bs-manual-fields" class="grid grid-cols-2 gap-2">
+                                <label>Base <input type="number" step="0.1" id="score-bs-base" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>+ Pernyataan Benar <input type="number" step="0.1" id="score-bs-correct" value="1" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>+ Pernyataan Salah <input type="number" step="0.1" id="score-bs-wrong" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Maks/Soal <input type="number" step="0.1" id="score-bs-max" value="3" class="w-full mt-1 p-1.5 border rounded"></label>
+                            </div>
+                            <div id="score-bs-simple-fields" class="hidden grid grid-cols-2 gap-2">
+                                <label>Benar Semua <input type="number" step="0.1" id="score-bs-simple-all-correct" value="3" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Benar Sebagian <input type="number" step="0.1" id="score-bs-simple-partial" value="2" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Salah Semua <input type="number" step="0.1" id="score-bs-simple-all-wrong" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Tidak Menjawab <input type="number" step="0.1" id="score-bs-simple-blank" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                            </div>
+                            <label>Min/Soal <input type="number" step="0.1" id="score-bs-min" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="container-soal" class="space-y-6"></div>
+            <div class="bg-sd-light p-4 rounded-2xl border-2 border-dashed border-sd-primary text-center space-y-3">
+                <p class="text-sd-dark font-bold text-sm">TAMBAH ITEM UJIAN:</p>
+                <div class="flex flex-wrap justify-center gap-2">
+                    <button id="btn-tambah-bacaan"
+                        class="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-full font-bold text-sm hover:bg-blue-600 hover:text-white transition shadow-sm"><i
+                            class="fas fa-book-open mr-1"></i> Tambah Bacaan</button>
+                    <button id="btn-tambah-pg"
+                        class="bg-white text-sd-primary border border-sd-primary px-4 py-2 rounded-full font-bold text-sm hover:bg-sd-primary hover:text-white transition shadow-sm"><i
+                            class="fas fa-list-ul mr-1"></i> Pilihan Ganda</button>
+                    <button id="btn-tambah-pgk"
+                        class="bg-white text-purple-600 border border-purple-600 px-4 py-2 rounded-full font-bold text-sm hover:bg-purple-600 hover:text-white transition shadow-sm"><i
+                            class="fas fa-tasks mr-1"></i> PG Kompleks</button>
+                    <button id="btn-tambah-bs"
+                        class="bg-white text-green-600 border border-green-600 px-4 py-2 rounded-full font-bold text-sm hover:bg-green-600 hover:text-white transition shadow-sm"><i
+                            class="fas fa-check-double mr-1"></i> Benar/Salah</button>
+                </div>
+            </div>
+        </div>
+        <div
+            class="fixed bottom-0 right-0 left-0 md:left-auto md:right-6 md:bottom-6 md:w-auto z-20 p-4 md:p-0 bg-white md:bg-transparent shadow-lg md:shadow-none border-t md:border-0">
+            <div class="flex flex-col md:flex-row gap-3">
+                <button id="btn-simpan-baru"
+                    class="hidden w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition hover:-translate-y-1 flex items-center justify-center gap-2">
+                    <i class="fas fa-plus-circle"></i> <span>SIMPAN SEBAGAI BARU</span>
+                </button>
+                <button id="btn-simpan-db"
+                    class="w-full md:w-auto bg-gradient-to-r from-sd-primary to-blue-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition hover:-translate-y-1 flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i> <span id="btn-simpan-text">SIMPAN KE DATABASE</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYER: ANALISIS HASIL -->
+    <div id="layer-analisis-wrapper" class="hidden min-h-screen pb-10">
+        <div
+            class="bg-white shadow-md sticky top-0 z-20 px-4 py-3 flex justify-between items-center border-b-4 border-blue-500">
+            <div class="flex items-center gap-3">
+                <button id="btn-back-to-guru-menu-2" class="text-gray-500 hover:text-blue-600"><i
+                        class="fas fa-arrow-left"></i> Kembali</button>
+                <div class="flex items-center gap-2">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg"><i class="fas fa-chart-line"></i></div>
+                    <h1 class="font-bold text-lg text-gray-700 leading-tight">Analisis Hasil Ujian</h1>
+                </div>
+            </div>
+            <button id="btn-guru-analisis-logout"
+                class="text-red-500 font-bold text-sm hover:bg-red-50 px-3 py-1 rounded-lg"><i
+                    class="fas fa-sign-out-alt"></i> Keluar</button>
+        </div>
+        <div class="max-w-4xl mx-auto p-4 space-y-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border space-y-3">
+                <div class="flex flex-col md:flex-row gap-3 items-center">
+                    <label class="font-bold text-gray-700 shrink-0 md:w-36 text-sm">Kode Ujian</label>
+                    <input type="text" id="kode-ujian-analisis"
+                        class="flex-1 p-2 border rounded-lg focus:border-blue-500 outline-none uppercase font-mono"
+                        placeholder="Cth: UJIANMTK — lihat semua varian soal">
+                </div>
+                <div class="flex items-center gap-3 text-xs text-gray-400">
+                    <div class="flex-1 border-t border-gray-200"></div>
+                    <span class="font-bold">atau</span>
+                    <div class="flex-1 border-t border-gray-200"></div>
+                </div>
+                <div class="flex flex-col md:flex-row gap-3 items-center">
+                    <label class="font-bold text-gray-700 shrink-0 md:w-36 text-sm">Kode Soal</label>
+                    <input type="text" id="kode-soal-analisis"
+                        class="flex-1 p-2 border rounded-lg focus:border-blue-500 outline-none uppercase font-mono"
+                        placeholder="Cth: MTK01 — analisis satu paket soal">
+                </div>
+                <button id="btn-mulai-analisis"
+                    class="w-full bg-blue-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center">
+                    <span class="btn-text">ANALISIS</span>
+                    <i class="fas fa-spinner fa-spin btn-spinner hidden"></i>
+                </button>
+            </div>
+            <div id="filter-sekolah-container" class="hidden bg-white p-4 rounded-xl shadow-sm border">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="font-bold text-gray-700">Filter Sekolah <span id="filter-loading"
+                            class="hidden ml-2 text-blue-500"><i class="fas fa-spinner fa-spin"></i></span></label>
+                    <button id="btn-apply-filter"
+                        class="bg-blue-600 text-white font-bold px-4 py-1.5 rounded-lg hover:bg-blue-700 transition text-sm">TERAPKAN</button>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 mb-2">
+                    <button id="btn-check-all-schools" type="button"
+                        class="bg-gray-100 text-gray-700 font-bold px-3 py-1.5 rounded-lg hover:bg-gray-200 transition text-xs">Pilih Semua</button>
+                    <button id="btn-uncheck-all-schools" type="button"
+                        class="bg-gray-100 text-gray-700 font-bold px-3 py-1.5 rounded-lg hover:bg-gray-200 transition text-xs">Kosongkan</button>
+                    <span class="text-xs text-gray-500">Tip: klik nama sekolah untuk centang cepat.</span>
+                </div>
+                <div id="school-checkboxes" class="flex flex-wrap gap-2 text-sm mt-2"></div>
+            </div>
+            <div id="analisis-loading" class="hidden text-center p-10">
+                <i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i>
+                <p class="mt-2 font-semibold text-gray-600">Menganalisis data...</p>
+            </div>
+            <div id="analisis-results-container" class="hidden animate-pop space-y-6"></div>
+        </div>
+    </div>
+
+    <!-- LAYER: CETAK BERKAS -->
+    <div id="layer-cetak-wrapper" class="hidden min-h-screen pb-10">
+        <div
+            class="bg-white shadow-md sticky top-0 z-20 px-4 py-3 flex justify-between items-center border-b-4 border-purple-500">
+            <div class="flex items-center gap-3">
+                <button id="btn-back-to-guru-menu-3" class="text-gray-500 hover:text-purple-600"><i
+                        class="fas fa-arrow-left"></i> Kembali</button>
+                <div class="flex items-center gap-2">
+                    <div class="bg-purple-600 text-white p-2 rounded-lg"><i class="fas fa-print"></i></div>
+                    <h1 class="font-bold text-lg text-gray-700 leading-tight">Cetak Berkas Ujian</h1>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-2xl mx-auto p-4 space-y-6 mt-4">
+            <div
+                class="bg-white p-6 rounded-2xl shadow-sm border border-purple-100 flex flex-col text-center items-center gap-4">
+                <i class="fas fa-file-alt text-4xl text-purple-300"></i>
+                <div>
+                    <h2 class="font-bold text-xl text-gray-800">Pilih Soal yang akan Dicetak</h2>
+                    <p class="text-sm text-gray-500">Cetak soal, kunci jawaban, dan lembar jawaban komputer (LJK).
+                        Kertas telah dioptimalkan.</p>
+                </div>
+                <input type="text" id="kode-soal-cetak"
+                    class="w-full max-w-sm p-3 border-2 border-purple-200 rounded-xl focus:border-purple-500 outline-none uppercase font-mono text-center text-lg shadow-inner"
+                    placeholder="Pencarian: KODE SOAL">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl mt-4 text-left">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Ukuran Kertas</label>
+                        <select id="opsi-kertas"
+                            class="w-full p-2 border rounded-lg bg-gray-50 outline-none focus:border-purple-500 text-sm text-gray-700 font-medium cursor-pointer">
+                            <option value="A4">A4 (210 x 297 mm)</option>
+                            <option value="F4">F4 (215 x 330 mm)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Kepadatan Cetak</label>
+                        <select id="opsi-mode"
+                            class="w-full p-2 border rounded-lg bg-gray-50 outline-none focus:border-purple-500 text-sm text-gray-700 font-medium cursor-pointer">
+                            <option value="regular">Regular</option>
+                            <option value="efisien">Efisien</option>
+                            <option value="sangat-efisien">Sangat Efisien</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Tata Letak</label>
+                        <select id="opsi-layout"
+                            class="w-full p-2 border rounded-lg bg-gray-50 outline-none focus:border-purple-500 text-sm text-gray-700 font-medium cursor-pointer">
+                            <option value="portrait">Portrait (1 Kolom)</option>
+                            <option value="landscape">Landscape (2 Kolom)</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="action-cetak-container" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full mt-4">
+                    <button id="btn-cetak-soal"
+                        class="bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-bold py-3 px-2 rounded-xl shadow-sm transition flex flex-col items-center gap-2 text-sm"><i
+                            class="fas fa-file-word text-xl"></i><span>Cetak Soal</span></button>
+                    <button id="btn-cetak-kunci"
+                        class="bg-white border-2 border-green-500 text-green-600 hover:bg-green-50 font-bold py-3 px-2 rounded-xl shadow-sm transition flex flex-col items-center gap-2 text-sm"><i
+                            class="fas fa-key text-xl"></i><span>Cetak Kunci</span></button>
+                    <button id="btn-cetak-ljk"
+                        class="bg-white border-2 border-purple-500 text-purple-600 hover:bg-purple-50 font-bold py-3 px-2 rounded-xl shadow-sm transition flex flex-col items-center gap-2 text-sm"><i
+                            class="fas fa-th-list text-xl"></i><span>Cetak LJK</span></button>
+                </div>
+                <div id="cetak-loading" class="hidden text-center p-6 mt-4">
+                    <i class="fas fa-spinner fa-spin text-3xl text-purple-500"></i>
+                    <p class="mt-2 font-semibold text-gray-600">Menyiapkan dokumen...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYER 4: SISWA - LOGIN -->
+    <div id="layer-siswa-login" class="hidden min-h-screen flex flex-col items-center p-4 py-6 bg-sd-primary">
+        <div class="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-md animate-pop">
+                <button id="btn-siswa-back-home" onclick="if (typeof navTo === 'function') { navTo('layer-home'); } else { var layers = document.querySelectorAll('[id^=\'layer-\']'); for (var i = 0; i < layers.length; i++) { layers[i].classList.add('hidden'); } var target = document.getElementById('layer-home'); if (target) target.classList.remove('hidden'); }" class="mb-4 text-gray-400 hover:text-gray-600"><i
+                    class="fas fa-arrow-left"></i> Kembali</button>
+            <h2 class="text-2xl font-bold text-center text-sd-dark mb-6">Data Peserta</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Nama Lengkap</label>
+                    <input type="text" id="siswa-nama"
+                        class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-sd-primary outline-none"
+                        placeholder="Nama Kamu">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Kelas</label>
+                    <select id="siswa-kelas"
+                        class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-sd-primary outline-none bg-white">
+                        <option value="">Pilih Kelas...</option>
+                        <option value="1">Kelas 1</option>
+                        <option value="2">Kelas 2</option>
+                        <option value="3">Kelas 3</option>
+                        <option value="4">Kelas 4</option>
+                        <option value="5">Kelas 5</option>
+                        <option value="6">Kelas 6</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Asal Sekolah</label>
+                    <input type="text" id="siswa-sekolah"
+                        class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-sd-primary outline-none"
+                        placeholder="Ketik nama sekolah Anda">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Nomor Peserta Ujian</label>
+                    <input type="text" id="siswa-no-peserta"
+                        class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-sd-primary outline-none"
+                        placeholder="Contoh: 01-001-001-8">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Kode Ujian <span class="font-normal text-gray-400">(soal acak dalam ujian)</span></label>
+                    <input type="text" id="siswa-kode-ujian"
+                        class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-sd-primary outline-none uppercase font-mono"
+                        placeholder="Masukkan Kode Ujian dari Guru">
+                </div>
+                <div class="flex items-center gap-3 text-xs text-gray-400">
+                    <div class="flex-1 border-t border-gray-200"></div>
+                    <span class="font-bold">atau</span>
+                    <div class="flex-1 border-t border-gray-200"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Kode Soal <span class="font-normal text-gray-400">(soal spesifik)</span></label>
+                    <input type="text" id="siswa-kode"
+                        class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-sd-primary outline-none uppercase font-mono"
+                        placeholder="Masukkan Kode Soal dari Guru">
+                </div>
+            </div>
+            <button id="btn-mulai-ujian" onclick="if (typeof mulaiUjian === 'function') { mulaiUjian(); } else { alert('Sistem belum siap. Muat ulang halaman.'); }"
+                class="mt-8 w-full bg-sd-accent hover:bg-yellow-500 text-yellow-900 font-extrabold py-4 px-6 rounded-2xl shadow-lg transform transition hover:-translate-y-1 text-lg flex items-center justify-center gap-2">
+                <span class="btn-text">MULAI MENGERJAKAN <i class="fas fa-play ml-2"></i></span>
+                <i class="fas fa-spinner fa-spin btn-spinner hidden"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- LAYER 5: SISWA - PENGERJAAN -->
+    <div id="layer-siswa-exam" class="hidden flex flex-col bg-gray-50 fixed inset-0 z-50 select-none"
+        style="height:100dvh">
+        <div class="bg-white shadow-sm px-4 py-2 flex justify-between items-center z-30 shrink-0 border-b">
+            <div class="overflow-hidden">
+                <h1 id="exam-title-display" class="font-bold text-sd-dark text-sm truncate">Ujian Berlangsung</h1>
+                <p id="student-name-display" class="text-xs text-gray-500 truncate">Nama Siswa</p>
+            </div>
+            <div id="timer-container"
+                class="bg-sd-light text-sd-dark px-3 py-2 rounded-lg text-sm font-mono font-bold border border-sd-primary flex items-center gap-2 whitespace-nowrap ml-2 shadow-inner">
+                <i class="fas fa-clock"></i> <span id="timer">--:--</span>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 md:p-6" id="scrollable-content">
+            <div id="question-display-area" class="max-w-3xl mx-auto pb-6"></div>
+        </div>
+        <div
+            class="bg-white border-t px-3 py-2 shrink-0 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] safe-area-pb gap-2">
+            <button id="btn-prev"
+                class="w-14 h-12 flex items-center justify-center rounded-xl bg-gray-200 text-gray-600 font-bold hover:bg-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition active:scale-95 text-lg shrink-0"><i
+                    class="fas fa-chevron-left"></i></button>
+            <button id="btn-open-nav-panel"
+                class="flex-1 min-w-0 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 border text-gray-700 font-bold flex items-center justify-center gap-2 text-sm"><i
+                    class="fas fa-table-cells-large"></i> <span id="question-indicator">1 / 10</span></button>
+            <button id="btn-next"
+                class="w-14 h-12 flex items-center justify-center rounded-xl bg-sd-primary text-white font-bold hover:bg-sd-dark shadow-md active:scale-95 transition text-lg shrink-0"><i
+                    class="fas fa-chevron-right"></i></button>
+            <button id="btn-finish"
+                class="hidden h-12 px-5 rounded-xl bg-green-500 text-white font-bold hover:bg-green-600 shadow-lg animate-pulse active:scale-95 transition text-sm shrink-0 flex items-center gap-1">KIRIM
+                <i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- LAYER 6: HASIL NILAI -->
+    <div id="layer-result"
+        class="hidden min-h-screen flex flex-col items-center justify-center p-6 bg-white text-center">
+        <div class="bg-sd-light rounded-full p-8 mb-6 animate-bounce"><i
+                class="fas fa-trophy text-6xl text-sd-accent"></i></div>
+        <h2 class="text-3xl font-extrabold text-sd-dark mb-2">Selesai!</h2>
+        <p class="text-gray-500 mb-8" id="pesan-hasil">Kamu telah menyelesaikan ujian.</p>
+        <div
+            class="bg-white border-2 border-gray-100 p-8 rounded-3xl shadow-xl w-full max-w-sm mb-8 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-sd-primary to-blue-600"></div>
+            <p class="text-sm font-bold text-gray-400 uppercase tracking-wide">Nilai Kamu</p>
+            <h1 id="score-display" class="text-6xl font-black text-sd-primary mt-2">--</h1>
+        </div>
+        <p id="save-status" class="text-sm text-gray-500 h-6 mb-4"></p>
+        <button id="btn-back-to-menu"
+            class="bg-gray-800 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-black transition transform active:scale-95">Kembali
+            ke Menu Utama</button>
+    </div>
+
+    <!-- LAYER 7: NAVIGASI SOAL (MODAL) -->
+    <div id="layer-nav-panel" class="fixed inset-0 bg-black/60 z-[60] hidden flex flex-col justify-end panel-enter">
+        <div id="nav-panel-content" class="bg-white rounded-t-3xl p-4 panel-content-enter max-h-[70vh] flex flex-col">
+            <div class="flex justify-between items-center mb-3 pb-3 border-b shrink-0">
+                <h2 class="font-extrabold text-lg text-sd-dark">Navigasi Soal</h2>
+                <button id="btn-close-nav-panel"
+                    class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <p id="nav-summary-text" class="text-center text-sm font-bold text-gray-600 mb-4 shrink-0"></p>
+            <div id="nav-grid-container" class="grid grid-cols-5 gap-3 p-2 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- LAYER 8: SHARE LINK MODAL -->
+    <div id="layer-share-link" class="hidden min-h-screen flex flex-col items-center justify-center p-4 bg-gray-100">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-lg animate-pop text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4"><i
+                    class="fas fa-check-double text-4xl text-green-600"></i></div>
+            <h2 class="text-2xl font-extrabold text-gray-800 mb-2">Soal Berhasil Disimpan!</h2>
+            <p class="text-gray-500 mb-6">Bagikan soal ini kepada siswa melalui link atau sematkan langsung di Google
+                Sites.</p>
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Link Ujian (untuk Siswa)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="share-link-input" readonly
+                            class="w-full p-2 border bg-gray-50 rounded-lg focus:outline-none font-mono text-sm text-gray-700">
+                        <button id="btn-copy-link"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-4 rounded-lg transition"><i
+                                class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Kode Semat (untuk Google Sites)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="embed-code-input" readonly
+                            class="w-full p-2 border bg-gray-50 rounded-lg focus:outline-none font-mono text-sm text-gray-700">
+                        <button id="btn-copy-embed"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-4 rounded-lg transition"><i
+                                class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+            </div>
+            <button id="btn-share-done"
+                class="mt-8 w-full bg-sd-dark hover:bg-gray-900 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition active:scale-95 text-lg">Selesai</button>
+        </div>
+    </div>
+
+    <!-- LAYER 9: ACTIVITY LOG MODAL -->
+    <div id="layer-activity-log"
+        class="hidden fixed inset-0 z-[110] bg-black bg-opacity-60 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div
+            class="bg-gray-50 rounded-2xl md:rounded-3xl w-full md:max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-pop">
+            <div class="bg-blue-900 text-white p-4 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-full hidden md:block"><i class="fas fa-user-shield text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-semibold opacity-80">Log Aktivitas Ujian</h2>
+                        <p id="log-siswa-name" class="font-bold text-lg leading-tight uppercase">Siswa Name</p>
+                    </div>
+                </div>
+                <button onclick="closeSiswaActivityLog()"
+                    class="text-white hover:bg-white/20 rounded-full w-8 h-8 flex justify-center items-center transition"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto w-full">
+                <div class="grid grid-cols-2 gap-3 mb-5">
+                    <div
+                        class="bg-yellow-100 border border-yellow-300 p-3 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-extrabold tracking-widest text-yellow-800 uppercase mb-0.5">
+                                Pindah Tab / Keluar Layar</p>
+                            <p id="log-blur-count" class="text-2xl font-extrabold text-yellow-900 leading-none">0</p>
+                        </div>
+                        <i class="fas fa-window-restore text-yellow-500 text-2xl opacity-60"></i>
+                    </div>
+                    <div class="bg-red-100 border border-red-300 p-3 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-extrabold tracking-widest text-red-800 uppercase mb-0.5">
+                                Percobaan Print/Copy/Cut</p>
+                            <p id="log-cheat-count" class="text-2xl font-extrabold text-red-900 leading-none">0</p>
+                        </div>
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl opacity-60"></i>
+                    </div>
+                </div>
+                <div class="bg-white border rounded-2xl shadow-sm p-4">
+                    <h3 class="font-bold text-gray-700 text-sm mb-3 border-b pb-2 flex items-center gap-2"><i
+                            class="far fa-clock text-blue-500"></i> Durasi Per Nomor Soal (Terbuka Layar)</h3>
+                    <ul id="log-time-list" class="space-y-1"></ul>
+                </div>
+                <p class="text-xs text-center text-gray-400 mt-4 px-2 italic">Aktivitas di atas dapat menjadi landasan
+                    untuk memvalidasi kejujuran dan kendala siswa saat ujian.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[100] space-y-3 w-full max-w-xs"></div>
+
+    <!-- Print Area -->
+    <div id="print-area"></div>
+
+    <!-- LAYER BLOKIR SUBMISSION -->
+    <div id="layer-submit-loading"
+        class="hidden fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[9999] flex-col px-4 text-center">
+        <i class="fas fa-satellite-dish text-6xl text-sd-primary mb-6 animate-pulse"></i>
+        <h2 class="text-3xl font-extrabold text-white mb-2 tracking-wide uppercase">Sedang Mengirim Jawaban</h2>
+        <p
+            class="text-red-400 font-bold bg-white bg-opacity-10 px-4 py-2 rounded-lg border border-red-500 mb-6 text-sm md:text-base animate-pulse-fast">
+            <i class="fas fa-exclamation-triangle mr-2"></i>DILARANG MENUTUP ATAU MENYEGARKAN HALAMAN INI!
+        </p>
+        <p id="submit-retry-text" class="text-gray-300">Menghubungkan ke server...</p>
+    </div>
+
+    <!-- LAYER KONFIRMASI CUSTOM (AMAN UNTUK IFRAME SANDBOX) -->
+    <div id="layer-confirm-modal"
+        class="hidden fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm p-4 flex items-center justify-center">
+        <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-5 animate-pop">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center shrink-0">
+                    <i class="fas fa-circle-exclamation"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 id="confirm-title" class="font-extrabold text-gray-800 text-lg">Konfirmasi</h3>
+                    <p id="confirm-message" class="text-sm text-gray-600 mt-1">Yakin ingin melanjutkan?</p>
+                </div>
+            </div>
+            <div class="mt-5 flex gap-2 justify-end">
+                <button id="btn-confirm-cancel"
+                    class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition">Batal</button>
+                <button id="btn-confirm-ok"
+                    class="px-4 py-2 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition">Ya, Kirim</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules (urutan penting!) -->
+    <script src="js/config.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/guru.js"></script>
+    <script src="js/siswa.js"></script>
+    <script src="js/cetak.js"></script>
+    <script src="js/init.js"></script>
+</body>
+
+</html>
