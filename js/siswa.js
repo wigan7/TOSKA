@@ -96,7 +96,7 @@ async function mulaiUjian() {
     const btn = document.getElementById('btn-mulai-ujian');
     toggleButtonLoading(btn, true);
 
-    function handleExamData(data, resolvedKode) {
+    function handleExamData(data, resolvedKode, kodeUjianAwal = '') {
         // Simpan kode soal yang sudah diresolved ke input siswa-kode agar
         // saveProgressToLocal() dan submitExam() dapat membacanya dengan benar.
         document.getElementById('siswa-kode').value = resolvedKode;
@@ -116,7 +116,15 @@ async function mulaiUjian() {
         currentQuestionIndex = 0;
 
         const saveKey = `tos_answers_${resolvedKode}_${noPeserta}`;
-        const savedDataStr = localStorage.getItem(saveKey);
+        let savedDataStr = localStorage.getItem(saveKey);
+        
+        // If using exam code (kodeUjianAwal), also check fallback key with exam code
+        // untuk recovery jawaban saat soal acak berubah
+        if (!savedDataStr && kodeUjianAwal && kodeUjianAwal !== resolvedKode) {
+            const fallbackKey = `tos_answers_${kodeUjianAwal}_${noPeserta}`;
+            savedDataStr = localStorage.getItem(fallbackKey);
+        }
+        
         if (savedDataStr) {
             try {
                 const parsedData = JSON.parse(savedDataStr);
@@ -143,7 +151,7 @@ async function mulaiUjian() {
         setTimeout(() => {
             const mockData = localStorage.getItem('tos_mock_db_' + kodeToTry);
             toggleButtonLoading(btn, false);
-            if (mockData) { const parsed = JSON.parse(mockData); handleExamData({ judul: parsed.judul, durasi: parsed.durasi || 60, soal: parsed.konten, scoring: parsed.scoring }, kodeToTry); }
+            if (mockData) { const parsed = JSON.parse(mockData); handleExamData({ judul: parsed.judul, durasi: parsed.durasi || 60, soal: parsed.konten, scoring: parsed.scoring }, kodeToTry, ''); }
             else { showToast("Kode tidak ditemukan.", 'error'); }
         }, 500);
     } else {
@@ -152,7 +160,7 @@ async function mulaiUjian() {
                 // Siswa input kode soal → ambil soal spesifik
                 const response = await fetchAppsScriptAPI('ambilSoal', kodeSoal);
                 if (response.status === 'sukses') {
-                    handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, kodeSoal);
+                    handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, kodeSoal, '');
                 } else {
                     showToast(response.message || "Kode Soal Tidak Ditemukan!", 'error');
                 }
@@ -161,7 +169,7 @@ async function mulaiUjian() {
                 const response = await fetchAppsScriptAPI('ambilSoalByKodeUjian', kodeUjian);
                 if (response.status === 'sukses') {
                     const resolvedKode = response.kode_soal_dipilih || kodeUjian;
-                    handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, resolvedKode);
+                    handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, resolvedKode, kodeUjian);
                 } else {
                     showToast(response.message || "Kode Ujian Tidak Ditemukan!", 'error');
                 }
@@ -294,8 +302,19 @@ function renderQuestion() {
 function saveProgressToLocal() {
     const kode = document.getElementById('siswa-kode').value.toUpperCase();
     const noPeserta = document.getElementById('siswa-no-peserta').value;
+    const kodeUjianAwal = document.getElementById('siswa-kode-ujian')?.value?.trim?.().toUpperCase() || '';
     if (!kode || !noPeserta) return;
-    localStorage.setItem(`tos_answers_${kode}_${noPeserta}`, JSON.stringify({ answers: studentAnswers, logs: activityLogs }));
+    
+    const mainKey = `tos_answers_${kode}_${noPeserta}`;
+    const data = JSON.stringify({ answers: studentAnswers, logs: activityLogs });
+    localStorage.setItem(mainKey, data);
+    
+    // Jika siswa pakai kode ujian, simpan juga ke key kode ujian agar tetap accessible
+    // saat soal acak berubah di kunjungan berikutnya
+    if (kodeUjianAwal && kodeUjianAwal !== kode) {
+        const fallbackKey = `tos_answers_${kodeUjianAwal}_${noPeserta}`;
+        localStorage.setItem(fallbackKey, data);
+    }
 }
 
 function saveAnswer(val) { studentAnswers[currentQuestionIndex] = val; saveProgressToLocal(); renderQuestion(); }
@@ -429,7 +448,24 @@ function submitExam(isAutoSubmit) {
     document.getElementById('score-display').innerText = finalScore;
     document.getElementById('pesan-hasil').innerText = isAutoSubmit ? "Waktu Habis! Jawaban tersimpan." : "Kamu telah menyelesaikan ujian.";
     navTo('layer-result');
-    const payload = { nama, kelas: document.getElementById('siswa-kelas').value, sekolah: document.getElementById('siswa-sekolah').value, noPeserta: document.getElementById('siswa-no-peserta').value, kode_soal: kode, nilai: finalScore, jawaban: studentAnswers, logAktivitas: activityLogs };
+    
+    // ✅ BARU: Generate unique submission ID yang sama untuk semua retry
+    const submissionTimestamp = Date.now();
+    const submissionId = `SUB_${kode}_${noPeserta}_${submissionTimestamp}`;
+    
+    const payload = { 
+        nama, 
+        kelas: document.getElementById('siswa-kelas').value, 
+        sekolah: document.getElementById('siswa-sekolah').value, 
+        noPeserta: document.getElementById('siswa-no-peserta').value, 
+        kode_soal: kode, 
+        nilai: finalScore, 
+        jawaban: studentAnswers, 
+        logAktivitas: activityLogs,
+        submissionId: submissionId,
+        submissionTimestamp: submissionTimestamp
+    };
+    
     const statusEl = document.getElementById('save-status');
     const autoSaveKey = `tos_answers_${kode}_${noPeserta}`;
     const btnFinish = document.getElementById('btn-finish');
@@ -440,7 +476,8 @@ function submitExam(isAutoSubmit) {
     document.getElementById('layer-submit-loading').classList.remove('hidden');
 
     const pendingKey = `jawaban_pending_${kode}_${noPeserta}`;
-    localStorage.setItem(pendingKey, JSON.stringify(payload));
+    // ✅ Simpan submission ID bersama data
+    localStorage.setItem(pendingKey, JSON.stringify({ ...payload, isPending: true }));
 
     let retryCount = 0;
 
@@ -460,11 +497,14 @@ function submitExam(isAutoSubmit) {
         try {
             const res = await fetchAppsScriptAPI('simpanNilai', dataToSubmit);
             if (res && res.status === 'sukses') {
-                if (statusEl) statusEl.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> Nilai berhasil disimpan.`;
-                localStorage.removeItem(pendingKey); localStorage.removeItem(autoSaveKey);
-                isSubmitting = false; document.getElementById('layer-submit-loading').classList.add('hidden');
+                // ✅ Hanya clear jika submission ID cocok
+                if (res.submissionId === dataToSubmit.submissionId) {
+                    if (statusEl) statusEl.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> Nilai berhasil disimpan.`;
+                    localStorage.removeItem(pendingKey); localStorage.removeItem(autoSaveKey);
+                    isSubmitting = false; document.getElementById('layer-submit-loading').classList.add('hidden');
+                }
             } else {
-                console.warn("Server Penuh, Retry...", res.message || res.pesan);
+                console.warn("Server Gagal, Retry...", res.message || res.pesan);
                 handleRetry(dataToSubmit);
             }
         } catch (err) {
@@ -475,11 +515,13 @@ function submitExam(isAutoSubmit) {
 
     function handleRetry(dataToSubmit) {
         if (retryCount >= 10) {
-            document.getElementById('submit-retry-text').innerHTML = `<span class="text-red-300">Gagal terhubung ke server setelah 10 kali coba.</span><br><span class="text-sm">Jawaban aman tersimpan di HP/Laptop ini. Kami akan mencoba mengirim ulang di latar belakang. Anda bisa merefresh / menutup browser.</span>`;
+            document.getElementById('submit-retry-text').innerHTML = `<span class="text-red-300">Gagal terhubung ke server setelah 10 kali coba.</span><br><span class="text-sm">Jawaban aman tersimpan. Kami akan mencoba mengirim ulang otomatis.</span>`;
             isSubmitting = false;
             setTimeout(() => { document.getElementById('layer-submit-loading').classList.add('hidden'); }, 5000);
         } else {
-            setTimeout(() => kirimDataDenganRetry(dataToSubmit), 5000);
+            // ✅ Exponential backoff: 2s, 4s, 8s, 16s...
+            const backoffDelay = 2000 * Math.pow(2, retryCount - 1);
+            setTimeout(() => kirimDataDenganRetry(dataToSubmit), Math.min(backoffDelay, 30000));
         }
     }
 
@@ -552,37 +594,77 @@ function checkGhostRecovery() {
     banner.innerHTML = `<i class="fas fa-sync fa-spin" style="margin-right:8px;"></i> Mengirim ulang jawaban Anda yang tertunda... Mohon tunggu dan jangan tutup halaman ini.`;
     document.body.prepend(banner);
 
-    pendingKeys.forEach(key => {
+    let processedCount = 0;
+    let successCount = 0;
+
+    pendingKeys.forEach((key, index) => {
         try {
             const payload = JSON.parse(localStorage.getItem(key));
-            console.log("Memulai Ghost Recovery untuk:", key);
+            console.log("Memulai Ghost Recovery untuk:", key, "Submission ID:", payload.submissionId);
             const autoSaveKey = `tos_answers_${payload.kode_soal}_${payload.noPeserta}`;
 
             if (APPS_SCRIPT_URL === 'URL_WEB_APP_APPS_SCRIPT_DI_SINI') {
                 setTimeout(() => {
                     console.log("Ghost Recovery Berhasil (Dev Mode):", key);
-                    localStorage.removeItem(key); localStorage.removeItem(autoSaveKey);
-                    const b = document.getElementById('ghost-recovery-banner');
-                    if (b) { b.style.background = '#16a34a'; b.innerHTML = `<i class="fas fa-check-circle" style="margin-right:8px;"></i> Jawaban berhasil terkirim! Terima kasih.`; setTimeout(() => b.remove(), 4000); }
-                }, 2000);
+                    localStorage.removeItem(key);
+                    localStorage.removeItem(autoSaveKey);
+                    processedCount++;
+                    successCount++;
+                    
+                    if (processedCount === pendingKeys.length) {
+                        const b = document.getElementById('ghost-recovery-banner');
+                        if (b) { 
+                            b.style.background = '#16a34a'; 
+                            b.innerHTML = `<i class="fas fa-check-circle" style="margin-right:8px;"></i> ${successCount}/${pendingKeys.length} jawaban berhasil terkirim!`; 
+                            setTimeout(() => b.remove(), 4000); 
+                        }
+                    }
+                }, 1000 * (index + 1));
                 return;
             }
 
             const ghostSync = async () => {
                 try {
                     const res = await fetchAppsScriptAPI('simpanNilai', payload);
-                    if (res && res.status === 'sukses') {
+                    
+                    // ✅ Check submissionId confirmation
+                    if (res && res.status === 'sukses' && 
+                        (res.submissionId === payload.submissionId || res.isDuplicate)) {
                         console.log("Ghost Recovery Berhasil:", key);
-                        localStorage.removeItem(key); localStorage.removeItem(autoSaveKey);
-                        const remaining = pendingKeys.filter(k => localStorage.getItem(k));
-                        if (remaining.length === 0) {
-                            const b = document.getElementById('ghost-recovery-banner');
-                            if (b) { b.style.background = '#16a34a'; b.innerHTML = `<i class="fas fa-check-circle" style="margin-right:8px;"></i> Jawaban berhasil terkirim! Terima kasih.`; setTimeout(() => b.remove(), 4000); }
+                        localStorage.removeItem(key);
+                        localStorage.removeItem(autoSaveKey);
+                        successCount++;
+                    } else {
+                        console.warn("Ghost Recovery tidak berhasil:", res);
+                    }
+                } catch (err) {
+                    console.error("Ghost Recovery Error:", err);
+                } finally {
+                    processedCount++;
+                    
+                    // Update banner ketika semua selesai
+                    if (processedCount === pendingKeys.length) {
+                        const b = document.getElementById('ghost-recovery-banner');
+                        if (b) {
+                            if (successCount === pendingKeys.length) {
+                                b.style.background = '#16a34a';
+                                b.innerHTML = `<i class="fas fa-check-circle" style="margin-right:8px;"></i> Semua jawaban berhasil terkirim!`;
+                            } else {
+                                b.style.background = '#f59e0b';
+                                b.innerHTML = `<i class="fas fa-check-circle" style="margin-right:8px;"></i> ${successCount}/${pendingKeys.length} jawaban terkirim. Sisanya tersimpan aman.`;
+                            }
+                            setTimeout(() => b.remove(), 4000);
                         }
-                    } else { setTimeout(ghostSync, 10000); }
-                } catch (error) { setTimeout(ghostSync, 10000); }
+                    }
+                }
             };
-            ghostSync();
-        } catch (e) { console.error("Gagal membaca payload ghost:", key); }
+
+            // ✅ Stagger requests dengan delay
+            setTimeout(ghostSync, 1000 * (index + 1));
+
+        } catch (error) {
+            console.error('Error parsing pending data:', error);
+            processedCount++;
+        }
     });
 }

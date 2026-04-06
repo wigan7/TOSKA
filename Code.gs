@@ -472,7 +472,61 @@ function simpanNilai(data) {
     return { status: 'gagal', pesan: "Gagal menemukan database Spreadsheet." };
   }
 
-  const barisBaru = [timestamp, data.nama, data.kelas, data.kode_soal, data.nilai, jawabanStr, logStr, data.sekolah, data.noPeserta];
+  // ===== DEDUPLICATION CHECK =====
+  // Cek apakah submission dengan ID yang sama sudah ada
+  const submissionId = data.submissionId;
+  
+  if (submissionId) {
+    const allRows = sheet.getDataRange().getValues();
+    
+    // Cek duplikat berdasarkan submissionId (simpan di kolom tambahan)
+    // INDEX 9 = kolom J (setelah noPeserta di index 8)
+    for (let i = 1; i < allRows.length; i++) {
+      const existingSubmissionId = String(allRows[i][9] || '').trim();
+      
+      if (existingSubmissionId === submissionId) {
+        // ✅ Submission sudah ada, return sukses tanpa tambah row baru
+        return { 
+          status: 'sukses', 
+          pesan: 'Data sudah disimpan sebelumnya.',
+          submissionId: submissionId,
+          isDuplicate: true // Flag untuk info
+        };
+      }
+    }
+  }
+
+  // ===== DOUBLE CHECK: DEDUP BERDASARKAN METADATA =====
+  // Jika tidak ada submissionId, gunakan fallback check
+  // (untuk backward compatibility dengan submission lama)
+  if (!submissionId) {
+    const allRows = sheet.getDataRange().getValues();
+    
+    // Cek: nama + noPeserta + kodeUjian + nilai + timestamp dalam 30 detik terakhir
+    const now = new Date();
+    for (let i = 1; i < allRows.length; i++) {
+      const rowTimestamp = new Date(allRows[i][0]);
+      const timeDiff = (now - rowTimestamp) / 1000; // dalam detik
+      
+      // Jika dalam 30 detik terakhir ada data identik
+      const isSamePerson = 
+        String(allRows[i][1]).trim() === String(data.nama).trim() &&
+        String(allRows[i][8]).trim() === String(data.noPeserta).trim() &&
+        String(allRows[i][3]).trim().toUpperCase() === String(data.kode_soal).trim().toUpperCase();
+      
+      if (isSamePerson && timeDiff < 30 && timeDiff >= 0) {
+        // Kemungkinan duplikat
+        console.log("Kemungkinan duplikat terdeteksi:", data.nama, data.noPeserta);
+        return { 
+          status: 'sukses', 
+          pesan: 'Data sudah disimpan sebelumnya. (Fallback dedup)',
+          isDuplicate: true
+        };
+      }
+    }
+  }
+
+  const barisBaru = [timestamp, data.nama, data.kelas, data.kode_soal, data.nilai, jawabanStr, logStr, data.sekolah, data.noPeserta, submissionId || ''];
 
   // 2. FASE PENULISAN (DI DALAM LOCK) - EKSEKUSI SINGKAT
   const lock = LockService.getScriptLock();
@@ -484,7 +538,7 @@ function simpanNilai(data) {
 
   try {
     sheet.appendRow(barisBaru);
-    return { status: 'sukses', pesan: 'Data tersimpan' };
+    return { status: 'sukses', pesan: 'Data tersimpan', submissionId: submissionId };
   } catch (e) {
     return { status: 'gagal', pesan: e.message };
   } finally {
