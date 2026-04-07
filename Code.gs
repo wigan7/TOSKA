@@ -41,7 +41,7 @@ function doPost(e) {
         result = analisisHasil(args[0], args[1]);
         break;
       case 'ambilSoalByKodeUjian':
-        result = ambilSoalByKodeUjian(args[0]);
+        result = ambilSoalByKodeUjian(args[0], args[1]);
         break;
       case 'analisisHasilByKodeUjian':
         result = analisisHasilByKodeUjian(args[0], args[1]);
@@ -459,85 +459,102 @@ function ambilSoal(kodeSoal) {
 
 
 function simpanNilai(data) {
-  // 1. FASE PERSIAPAN (DI LUAR LOCK) - PARALEL MASAL 
+  // 1) Validasi dan normalisasi payload (cepat, di luar lock)
+  if (!data || typeof data !== 'object') {
+    return { status: 'gagal', pesan: 'Payload tidak valid.' };
+  }
+
   const timestamp = new Date();
-  const jawabanStr = JSON.stringify(data.jawaban);
-  const logStr = JSON.stringify(data.logAktivitas || {});
-  
+  const nama = String(data.nama || '').trim();
+  const kelas = String(data.kelas || '').trim();
+  const kodeSoal = String(data.kode_soal || '').trim().toUpperCase();
+  const sekolah = String(data.sekolah || '').trim();
+  const noPeserta = String(data.noPeserta || '').trim();
+  const submissionId = String(data.submissionId || '').trim();
+  const nilaiNumber = Number(data.nilai);
+
+  if (!nama || !kelas || !kodeSoal || !sekolah || !noPeserta || !Number.isFinite(nilaiNumber)) {
+    return { status: 'gagal', pesan: 'Data siswa tidak lengkap atau tidak valid.' };
+  }
+
+  let jawabanStr = '';
+  let logStr = '';
+  try {
+    jawabanStr = JSON.stringify(data.jawaban || {});
+    logStr = JSON.stringify(data.logAktivitas || {});
+  } catch (e) {
+    return { status: 'gagal', pesan: 'Format jawaban tidak valid.' };
+  }
+
+  // Batas aman ukuran payload agar server tidak terbebani request abnormal.
+  if (jawabanStr.length > 800000 || logStr.length > 120000) {
+    return { status: 'gagal', pesan: 'Ukuran data jawaban terlalu besar.' };
+  }
+
   let ss, sheet;
   try {
     ss = SpreadsheetApp.openById(SHEET_ID);
     sheet = ss.getSheetByName('hasil_siswa');
   } catch (e) {
-    return { status: 'gagal', pesan: "Gagal menemukan database Spreadsheet." };
+    return { status: 'gagal', pesan: 'Gagal menemukan database Spreadsheet.' };
   }
 
-  // ===== DEDUPLICATION CHECK =====
-  // Cek apakah submission dengan ID yang sama sudah ada
-  const submissionId = data.submissionId;
-  
-  if (submissionId) {
-    const allRows = sheet.getDataRange().getValues();
-    
-    // Cek duplikat berdasarkan submissionId (simpan di kolom tambahan)
-    // INDEX 9 = kolom J (setelah noPeserta di index 8)
-    for (let i = 1; i < allRows.length; i++) {
-      const existingSubmissionId = String(allRows[i][9] || '').trim();
-      
-      if (existingSubmissionId === submissionId) {
-        // ✅ Submission sudah ada, return sukses tanpa tambah row baru
-        return { 
-          status: 'sukses', 
-          pesan: 'Data sudah disimpan sebelumnya.',
-          submissionId: submissionId,
-          isDuplicate: true // Flag untuk info
-        };
-      }
-    }
+  // 2) Idempotency key berbasis cache (ringan untuk lonjakan submit)
+  const cache = CacheService.getScriptCache();
+  const submissionCacheKey = submissionId ? ('submit_id_' + submissionId) : '';
+  const legacyFingerprint = Utilities.base64EncodeWebSafe([nama, noPeserta, kodeSoal, String(nilaiNumber)].join('|')).slice(0, 80);
+  const legacyCacheKey = 'submit_legacy_' + legacyFingerprint;
+
+  if (submissionCacheKey && cache.get(submissionCacheKey)) {
+    return {
+      status: 'sukses',
+      pesan: 'Data sudah disimpan sebelumnya.',
+      submissionId: submissionId,
+      isDuplicate: true
+    };
   }
 
-  // ===== DOUBLE CHECK: DEDUP BERDASARKAN METADATA =====
-  // Jika tidak ada submissionId, gunakan fallback check
-  // (untuk backward compatibility dengan submission lama)
-  if (!submissionId) {
-    const allRows = sheet.getDataRange().getValues();
-    
-    // Cek: nama + noPeserta + kodeUjian + nilai + timestamp dalam 30 detik terakhir
-    const now = new Date();
-    for (let i = 1; i < allRows.length; i++) {
-      const rowTimestamp = new Date(allRows[i][0]);
-      const timeDiff = (now - rowTimestamp) / 1000; // dalam detik
-      
-      // Jika dalam 30 detik terakhir ada data identik
-      const isSamePerson = 
-        String(allRows[i][1]).trim() === String(data.nama).trim() &&
-        String(allRows[i][8]).trim() === String(data.noPeserta).trim() &&
-        String(allRows[i][3]).trim().toUpperCase() === String(data.kode_soal).trim().toUpperCase();
-      
-      if (isSamePerson && timeDiff < 30 && timeDiff >= 0) {
-        // Kemungkinan duplikat
-        console.log("Kemungkinan duplikat terdeteksi:", data.nama, data.noPeserta);
-        return { 
-          status: 'sukses', 
-          pesan: 'Data sudah disimpan sebelumnya. (Fallback dedup)',
-          isDuplicate: true
-        };
-      }
-    }
+  if (!submissionCacheKey && cache.get(legacyCacheKey)) {
+    return {
+      status: 'sukses',
+      pesan: 'Data sudah disimpan sebelumnya. (Fallback dedup)',
+      isDuplicate: true
+    };
   }
 
-  const barisBaru = [timestamp, data.nama, data.kelas, data.kode_soal, data.nilai, jawabanStr, logStr, data.sekolah, data.noPeserta, submissionId || ''];
+  const barisBaru = [timestamp, nama, kelas, kodeSoal, nilaiNumber, jawabanStr, logStr, sekolah, noPeserta, submissionId || ''];
 
-  // 2. FASE PENULISAN (DI DALAM LOCK) - EKSEKUSI SINGKAT
+  // 3) Lock singkat + double-check cache untuk mencegah race-condition
   const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(30000); 
+    lock.waitLock(120000);
   } catch (e) {
-    return { status: 'gagal', pesan: "Server sibuk, mencoba antrean ulang..." };
+    return { status: 'gagal', pesan: 'Server sibuk, mencoba antrean ulang...' };
   }
 
   try {
+    if (submissionCacheKey && cache.get(submissionCacheKey)) {
+      return {
+        status: 'sukses',
+        pesan: 'Data sudah disimpan sebelumnya.',
+        submissionId: submissionId,
+        isDuplicate: true
+      };
+    }
+    if (!submissionCacheKey && cache.get(legacyCacheKey)) {
+      return {
+        status: 'sukses',
+        pesan: 'Data sudah disimpan sebelumnya. (Fallback dedup)',
+        isDuplicate: true
+      };
+    }
+
     sheet.appendRow(barisBaru);
+
+    // Mark as processed (submissionId: 6 jam, legacy: 2 menit)
+    if (submissionCacheKey) cache.put(submissionCacheKey, '1', 21600);
+    else cache.put(legacyCacheKey, '1', 120);
+
     return { status: 'sukses', pesan: 'Data tersimpan', submissionId: submissionId };
   } catch (e) {
     return { status: 'gagal', pesan: e.message };
@@ -690,8 +707,9 @@ function analisisHasil(kodeSoal, selectedSchools = null) {
 }
 
 /* --- FUNGSI KODE UJIAN --- */
-function ambilSoalByKodeUjian(kodeUjian) {
+function ambilSoalByKodeUjian(kodeUjian, noPeserta) {
   const kodeNormal = String(kodeUjian).trim().toUpperCase();
+  const noPesertaNormal = String(noPeserta || '').trim().toUpperCase();
   const ss = SpreadsheetApp.openById(SHEET_ID);
   const sheet = ss.getSheetByName('bank_soal');
   const rows = sheet.getDataRange().getValues();
@@ -709,11 +727,39 @@ function ambilSoalByKodeUjian(kodeUjian) {
     return { status: 'error', message: 'Kode ujian tidak ditemukan atau belum ada soal yang terdaftar.' };
   }
 
+  // Kunci varian per peserta agar recovery konsisten lintas sesi.
+  let mappedKode = '';
+  if (noPesertaNormal) {
+    try {
+      const props = PropertiesService.getScriptProperties();
+      const mapKey = 'ujian_map_' + kodeNormal + '_' + noPesertaNormal;
+      const existingMap = props.getProperty(mapKey);
+      if (existingMap && daftarKodeSoal.includes(existingMap)) {
+        mappedKode = existingMap;
+      }
+    } catch (e) {
+      console.log('Gagal membaca mapping varian ujian:', e);
+    }
+  }
+
   // Pilih satu kode_soal secara acak dari daftar
-  const randomKode = daftarKodeSoal[Math.floor(Math.random() * daftarKodeSoal.length)];
+  const randomKode = mappedKode || daftarKodeSoal[Math.floor(Math.random() * daftarKodeSoal.length)];
+
+  // Simpan mapping jika belum ada agar percobaan berikutnya konsisten.
+  if (!mappedKode && noPesertaNormal) {
+    try {
+      const props = PropertiesService.getScriptProperties();
+      const mapKey = 'ujian_map_' + kodeNormal + '_' + noPesertaNormal;
+      props.setProperty(mapKey, randomKode);
+    } catch (e) {
+      console.log('Gagal menyimpan mapping varian ujian:', e);
+    }
+  }
+
   const result = ambilSoal(randomKode);
   if (result && result.status === 'sukses') {
     result.kode_soal_dipilih = randomKode;
+    result.isMappedByNoPeserta = !!noPesertaNormal;
   }
   return result;
 }

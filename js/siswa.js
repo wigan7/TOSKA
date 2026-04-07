@@ -166,7 +166,7 @@ async function mulaiUjian() {
                 }
             } else {
                 // Siswa input kode ujian → ambil soal acak dalam kelompok ujian
-                const response = await fetchAppsScriptAPI('ambilSoalByKodeUjian', kodeUjian);
+                const response = await fetchAppsScriptAPI('ambilSoalByKodeUjian', kodeUjian, noPeserta);
                 if (response.status === 'sukses') {
                     const resolvedKode = response.kode_soal_dipilih || kodeUjian;
                     handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, resolvedKode, kodeUjian);
@@ -521,7 +521,9 @@ function submitExam(isAutoSubmit) {
         } else {
             // ✅ Exponential backoff: 2s, 4s, 8s, 16s...
             const backoffDelay = 2000 * Math.pow(2, retryCount - 1);
-            setTimeout(() => kirimDataDenganRetry(dataToSubmit), Math.min(backoffDelay, 30000));
+            const jitter = 0.85 + (Math.random() * 0.3); // 0.85x - 1.15x
+            const finalDelay = Math.min(Math.floor(backoffDelay * jitter), 30000);
+            setTimeout(() => kirimDataDenganRetry(dataToSubmit), finalDelay);
         }
     }
 
