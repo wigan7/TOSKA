@@ -185,6 +185,12 @@ function clampScore_(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function normalizeIndex_(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function scoreQuestion_(q, ans, scoringCfg) {
   const cfg = normalizeScoringConfig_(scoringCfg);
 
@@ -192,15 +198,19 @@ function scoreQuestion_(q, ans, scoringCfg) {
     const maxPoints = cfg.pg.maxPoints;
     const minPoints = cfg.pg.minPoints;
     let score = cfg.pg.blankPoints;
-    if (ans !== undefined && ans !== null) {
-      score = ans === q.kunci ? cfg.pg.correctPoints : cfg.pg.wrongPoints;
+    const ansIdx = normalizeIndex_(ans);
+    const keyIdx = normalizeIndex_(q.kunci);
+    if (ansIdx !== null) {
+      score = (keyIdx !== null && ansIdx === keyIdx) ? cfg.pg.correctPoints : cfg.pg.wrongPoints;
     }
     return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints };
   }
 
   if (q.tipe === 'pgk') {
     const minPoints = cfg.pgk.minPoints;
-    const selections = Array.isArray(ans) ? ans : [];
+    const selections = Array.isArray(ans)
+      ? ans.map(normalizeIndex_).filter(function(i) { return i !== null; })
+      : [];
 
     if (cfg.pgk.mode === 'simple') {
       const totalTrue = (q.opsi || []).filter(op => op && op.isTrue).length;
