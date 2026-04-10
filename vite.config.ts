@@ -22,7 +22,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.VITE_APPS_SCRIPT_URL': JSON.stringify(env.VITE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbz8BmZIx5RjgRG28OOLi-gi_badBDwPZO1vOglC5IkcGlqx8urRaCdTDDmC-Qx1CkU4/exec')
+        'process.env.VITE_APPS_SCRIPT_URL': JSON.stringify(env.VITE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec')
       },
       resolve: {
         alias: {

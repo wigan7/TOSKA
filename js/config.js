@@ -1,6 +1,6 @@
 // ===== KONFIGURASI & STATE GLOBAL =====
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8BmZIx5RjgRG28OOLi-gi_badBDwPZO1vOglC5IkcGlqx8urRaCdTDDmC-Qx1CkU4/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec";
 
 // State
 let questions = [];
