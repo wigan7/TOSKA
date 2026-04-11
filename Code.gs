@@ -221,17 +221,18 @@ function scoreQuestion_(q, ans, scoringCfg) {
   if (q.tipe === 'pg') {
     const keyIdx = normalizeIndex_(q.kunci);
     if (keyIdx === null) {
-      return { score: 0, maxPoints: 0 };
+      return { score: 0, maxPoints: 0, isPerfect: false };
     }
 
     const maxPoints = Math.max(cfg.pg.maxPoints, cfg.pg.minPoints);
     const minPoints = cfg.pg.minPoints;
     let score = cfg.pg.blankPoints;
     const ansIdx = normalizeIndex_(ans);
+    const isPerfect = ansIdx !== null && ansIdx === keyIdx;
     if (ansIdx !== null) {
       score = (ansIdx === keyIdx) ? cfg.pg.correctPoints : cfg.pg.wrongPoints;
     }
-    return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints };
+    return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints, isPerfect: isPerfect };
   }
 
   if (q.tipe === 'pgk') {
@@ -255,42 +256,40 @@ function scoreQuestion_(q, ans, scoringCfg) {
       ? dedupeNumberArray_(ans.map(normalizeIndex_).filter(function(i) { return i !== null && validOptionIndexSet[i]; }))
       : [];
 
-    const dynamicMaxPoints = Math.max(validCorrectCount, minPoints);
+    const maxPoints = Math.max(cfg.pgk.maxPoints, minPoints);
 
     if (validCorrectCount === 0) {
-      return { score: 0, maxPoints: 0 };
+      return { score: 0, maxPoints: 0, isPerfect: false };
     }
 
-    if (cfg.pgk.mode === 'simple') {
-      let correctSelected = 0;
-      let wrongSelected = 0;
-      selections.forEach(optIdx => {
-        if ((q.opsi || [])[optIdx] && (q.opsi || [])[optIdx].isTrue) correctSelected++;
-        else wrongSelected++;
-      });
+    let correctSelected = 0;
+    let wrongSelected = 0;
+    selections.forEach(function(optIdx) {
+      if ((q.opsi || [])[optIdx] && (q.opsi || [])[optIdx].isTrue) correctSelected++;
+      else wrongSelected++;
+    });
+    const isAllCorrect = validCorrectCount > 0 && correctSelected === validCorrectCount && wrongSelected === 0 && selections.length === validCorrectCount;
 
+    if (cfg.pgk.mode === 'simple') {
       let score = cfg.pgk.simpleBlankPoints;
       if (selections.length === 0) {
         score = cfg.pgk.simpleBlankPoints;
       } else {
-        const isAllCorrect = validCorrectCount > 0 && correctSelected === validCorrectCount && wrongSelected === 0 && selections.length === validCorrectCount;
         const isAllWrong = correctSelected === 0;
         if (isAllCorrect) score = cfg.pgk.simpleAllCorrectPoints;
         else if (isAllWrong) score = cfg.pgk.simpleAllWrongPoints;
         else score = cfg.pgk.simplePartialPoints;
       }
 
-      const maxPoints = dynamicMaxPoints;
-      return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints };
+      return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints, isPerfect: isAllCorrect };
     }
 
-    const maxPoints = dynamicMaxPoints;
     let score = cfg.pgk.basePoints;
     selections.forEach(optIdx => {
       if ((q.opsi || [])[optIdx] && (q.opsi || [])[optIdx].isTrue) score += cfg.pgk.pointsPerCorrectSelection;
       else score += cfg.pgk.pointsPerWrongSelection;
     });
-    return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints };
+    return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints, isPerfect: isAllCorrect };
   }
 
   if (q.tipe === 'bs') {
@@ -303,47 +302,45 @@ function scoreQuestion_(q, ans, scoringCfg) {
     const keyedCount = statements.length;
 
     if (keyedCount === 0) {
-      return { score: 0, maxPoints: 0 };
+      return { score: 0, maxPoints: 0, isPerfect: false };
     }
 
-    const dynamicMaxPoints = Math.max(keyedCount, minPoints);
+    const maxPoints = Math.max(cfg.bs.maxPoints, minPoints);
+    const answers = (ans && typeof ans === 'object') ? ans : {};
+    let correctCount = 0;
+    statements.forEach((entry) => {
+      if (answers[entry.idx] === entry.statement.kunci) correctCount++;
+    });
+    const isAllCorrect = keyedCount > 0 && correctCount === keyedCount;
 
     if (cfg.bs.mode === 'simple') {
-      const answers = (ans && typeof ans === 'object') ? ans : {};
       const answeredCount = statements.reduce(function(total, entry) {
         const v = answers[entry.idx];
         return total + ((v === 'B' || v === 'S') ? 1 : 0);
       }, 0);
-      let correctCount = 0;
-      statements.forEach((entry) => {
-        if (answers[entry.idx] === entry.statement.kunci) correctCount++;
-      });
 
       let score = cfg.bs.simpleBlankPoints;
       if (answeredCount === 0) {
         score = cfg.bs.simpleBlankPoints;
       } else {
-        const isAllCorrect = keyedCount > 0 && correctCount === keyedCount;
         const isAllWrong = correctCount === 0;
         if (isAllCorrect) score = cfg.bs.simpleAllCorrectPoints;
         else if (isAllWrong) score = cfg.bs.simpleAllWrongPoints;
         else score = cfg.bs.simplePartialPoints;
       }
 
-      const maxPoints = dynamicMaxPoints;
-      return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints };
+      return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints, isPerfect: isAllCorrect };
     }
 
-    const maxPoints = dynamicMaxPoints;
     let score = cfg.bs.basePoints;
     statements.forEach((entry) => {
       if (ans && ans[entry.idx] === entry.statement.kunci) score += cfg.bs.pointsPerCorrectStatement;
       else score += cfg.bs.pointsPerWrongStatement;
     });
-    return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints };
+    return { score: clampScore_(score, minPoints, maxPoints), maxPoints: maxPoints, isPerfect: isAllCorrect };
   }
 
-  return { score: 0, maxPoints: 0 };
+  return { score: 0, maxPoints: 0, isPerfect: false };
 }
 
 /* --- FUNGSI DATABASE --- */
@@ -751,7 +748,9 @@ function analisisHasil(kodeSoal, selectedSchools = null) {
         const studentAnswer = studentAnswers[index];
         const scored = scoreQuestion_(q, studentAnswer, scoringConfig);
         if (scored.maxPoints <= 0) return;
-        const isCorrect = scored.score >= scored.maxPoints;
+        const isCorrect = (typeof scored.isPerfect === 'boolean')
+          ? scored.isPerfect
+          : (scored.score >= scored.maxPoints);
 
         if (isCorrect) {
           analysis[index].correctCount++;

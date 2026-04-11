@@ -14,22 +14,22 @@
 ### 2. **js/config.js** - Gunakan Environment Variable  
 - **Sebelum:**
   ```javascript
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec";
   ```
 
 - **Sesudah:**
   ```javascript
-  const APPS_SCRIPT_URL = process.env.VITE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec";
+  const APPS_SCRIPT_URL = process.env.VITE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec";
   ```
 
 ### 3. **.env.local** (Local Development)
 ```env
-VITE_APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec
+VITE_APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec
 ```
 
 ### 4. **.env.example** (Template untuk Documentation)
 ```env
-VITE_APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec
+VITE_APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec
 VITE_GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
@@ -48,7 +48,7 @@ Menambahkan:
 3. Pilih deployment yang ada (atau buat baru dengan "New deployment")
 4. Copy URL yang terlihat seperti:
    ```
-   https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec
+   https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec
    ```
 
 ### Langkah 2: Set Environment Variable di Platform Deployment
@@ -63,14 +63,14 @@ vercel env add VITE_APPS_SCRIPT_URL
 1. Site Settings → Build & Deploy → Environment
 2. Tambah variable:
    - Key: `VITE_APPS_SCRIPT_URL`
-   - Value: `https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec`
+   - Value: `https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec`
 
 #### **Untuk Cloudflare Pages:**
 1. Buka project di Cloudflare Pages Dashboard
 2. Masuk ke **Settings** → **Environment variables**
 3. Klik **Add variable** untuk Production:
    - Variable name: `VITE_APPS_SCRIPT_URL`
-   - Value: `https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec`
+   - Value: `https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec`
 4. Pastikan build settings:
    - **Build command:** `npm run build`
    - **Build output directory:** `dist`
@@ -84,7 +84,7 @@ name = "tos-mukti"
 type = "javascript"
 
 [env.production]
-vars = { VITE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec" }
+vars = { VITE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec" }
 
 [build]
 command = "npm run build"
@@ -103,7 +103,7 @@ wrangler pages deploy dist
 #### **Untuk Server Sendiri (Azure, AWS, dsb):**
 ```bash
 # Set environment variable sebelum deploy
-export VITE_APPS_SCRIPT_URL="https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec"
+export VITE_APPS_SCRIPT_URL="https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec"
 
 # Kemudian build
 npm run build

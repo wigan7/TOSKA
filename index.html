@@ -200,60 +200,64 @@
                         <div class="bg-sky-50 border border-sky-200 rounded-xl p-3 space-y-2">
                             <p class="font-extrabold text-sky-700">PG</p>
                             <div class="grid grid-cols-2 gap-2">
-                                <label>Benar <input type="number" step="0.1" id="score-pg-correct" value="1" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Salah <input type="number" step="0.1" id="score-pg-wrong" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Kosong <input type="number" step="0.1" id="score-pg-blank" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Maks/Soal <input type="number" step="0.1" id="score-pg-max" value="1" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Min/Soal <input type="number" step="0.1" id="score-pg-min" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Benar <input type="number" step="0.1" id="score-pg-correct" value="1" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Salah <input type="number" step="0.1" id="score-pg-wrong" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Kosong <input type="number" step="0.1" id="score-pg-blank" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Maks/Soal <input type="number" step="0.1" id="score-pg-max" value="1" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Min/Soal <input type="number" step="0.1" id="score-pg-min" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
                             </div>
                         </div>
                         <div class="bg-purple-50 border border-purple-200 rounded-xl p-3 space-y-2">
                             <p class="font-extrabold text-purple-700">PG Kompleks</p>
                             <label>Mode
-                                <select id="score-pgk-mode" class="w-full mt-1 p-1.5 border rounded bg-white">
+                                <select id="score-pgk-mode" class="w-full mt-1 p-1.5 border rounded bg-white" onchange="updateScoringModeUI()">
                                     <option value="manual">Manual</option>
                                     <option value="simple">Simple</option>
                                 </select>
                             </label>
                             <div id="score-pgk-manual-fields" class="grid grid-cols-2 gap-2">
-                                <label>Base <input type="number" step="0.1" id="score-pgk-base" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>+ Pilihan Benar <input type="number" step="0.1" id="score-pgk-correct" value="1" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>+ Pilihan Salah <input type="number" step="0.1" id="score-pgk-wrong" value="-1" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Maks/Soal (dinamis) <input type="number" step="0.1" id="score-pgk-max" value="3" readonly title="Dihitung otomatis: jumlah opsi benar yang valid" class="w-full mt-1 p-1.5 border rounded bg-gray-100 text-gray-500 cursor-not-allowed"></label>
+                                <label>Base <input type="number" step="0.1" id="score-pgk-base" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>+ Pilihan Benar <input type="number" step="0.1" id="score-pgk-correct" value="1" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>+ Pilihan Salah <input type="number" step="0.1" id="score-pgk-wrong" value="-1" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Maks/Soal <input type="number" step="0.1" id="score-pgk-max" value="3" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
                             </div>
                             <div id="score-pgk-simple-fields" class="hidden grid grid-cols-2 gap-2">
-                                <label>Benar Semua <input type="number" step="0.1" id="score-pgk-simple-all-correct" value="3" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Benar Sebagian <input type="number" step="0.1" id="score-pgk-simple-partial" value="2" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Salah Semua <input type="number" step="0.1" id="score-pgk-simple-all-wrong" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Tidak Menjawab <input type="number" step="0.1" id="score-pgk-simple-blank" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Benar Semua <input type="number" step="0.1" id="score-pgk-simple-all-correct" value="3" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Benar Sebagian <input type="number" step="0.1" id="score-pgk-simple-partial" value="2" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Salah Semua <input type="number" step="0.1" id="score-pgk-simple-all-wrong" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Tidak Menjawab <input type="number" step="0.1" id="score-pgk-simple-blank" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Maks/Soal <input type="number" step="0.1" id="score-pgk-max" value="3" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
                             </div>
-                            <p class="text-[11px] text-purple-700">Maks PGK dihitung dari jumlah opsi benar yang valid. Opsi kosong diabaikan.</p>
-                            <label>Min/Soal <input type="number" step="0.1" id="score-pgk-min" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                            <p class="text-[11px] text-purple-700">💡 Atur Maks sesuai skenario Anda. Backend akan menggunakan nilai sesuai konfigurasi.</p>
+                            <label>Min/Soal <input type="number" step="0.1" id="score-pgk-min" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
                         </div>
                         <div class="bg-green-50 border border-green-200 rounded-xl p-3 space-y-2">
                             <p class="font-extrabold text-green-700">Benar/Salah</p>
                             <label>Mode
-                                <select id="score-bs-mode" class="w-full mt-1 p-1.5 border rounded bg-white">
+                                <select id="score-bs-mode" class="w-full mt-1 p-1.5 border rounded bg-white" onchange="updateScoringModeUI()">
                                     <option value="manual">Manual</option>
                                     <option value="simple">Simple</option>
                                 </select>
                             </label>
                             <div id="score-bs-manual-fields" class="grid grid-cols-2 gap-2">
-                                <label>Base <input type="number" step="0.1" id="score-bs-base" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>+ Pernyataan Benar <input type="number" step="0.1" id="score-bs-correct" value="1" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>+ Pernyataan Salah <input type="number" step="0.1" id="score-bs-wrong" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Maks/Soal (dinamis) <input type="number" step="0.1" id="score-bs-max" value="3" readonly title="Dihitung otomatis: jumlah pernyataan yang berkunci" class="w-full mt-1 p-1.5 border rounded bg-gray-100 text-gray-500 cursor-not-allowed"></label>
+                                <label>Base <input type="number" step="0.1" id="score-bs-base" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>+ Pernyataan Benar <input type="number" step="0.1" id="score-bs-correct" value="1" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>+ Pernyataan Salah <input type="number" step="0.1" id="score-bs-wrong" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Maks/Soal <input type="number" step="0.1" id="score-bs-max" value="3" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
                             </div>
                             <div id="score-bs-simple-fields" class="hidden grid grid-cols-2 gap-2">
-                                <label>Benar Semua <input type="number" step="0.1" id="score-bs-simple-all-correct" value="3" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Benar Sebagian <input type="number" step="0.1" id="score-bs-simple-partial" value="2" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Salah Semua <input type="number" step="0.1" id="score-bs-simple-all-wrong" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
-                                <label>Tidak Menjawab <input type="number" step="0.1" id="score-bs-simple-blank" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                                <label>Benar Semua <input type="number" step="0.1" id="score-bs-simple-all-correct" value="3" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Benar Sebagian <input type="number" step="0.1" id="score-bs-simple-partial" value="2" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Salah Semua <input type="number" step="0.1" id="score-bs-simple-all-wrong" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Tidak Menjawab <input type="number" step="0.1" id="score-bs-simple-blank" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
+                                <label>Maks/Soal <input type="number" step="0.1" id="score-bs-max" value="3" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
                             </div>
-                            <p class="text-[11px] text-green-700">Maks BS dihitung dari jumlah pernyataan berkunci B/S. Pernyataan tanpa kunci diabaikan.</p>
-                            <label>Min/Soal <input type="number" step="0.1" id="score-bs-min" value="0" class="w-full mt-1 p-1.5 border rounded"></label>
+                            <p class="text-[11px] text-green-700">💡 Atur Maks sesuai skenario Anda. Backend akan menggunakan nilai sesuai konfigurasi.</p>
+                            <label>Min/Soal <input type="number" step="0.1" id="score-bs-min" value="0" class="w-full mt-1 p-1.5 border rounded" oninput="validateAndDisplayScoringConfig()"></label>
                         </div>
                     </div>
+                    <!-- Scoring Validation Warnings -->
+                    <div id="scoring-validation-warnings" class="hidden rounded-lg border-l-4 border-orange-500 bg-orange-50 p-4 space-y-2"></div>
                 </div>
             </div>
             <div id="container-soal" class="space-y-6"></div>

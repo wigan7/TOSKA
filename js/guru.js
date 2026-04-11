@@ -70,28 +70,6 @@ function getNumInputValue(id, fallback) {
 }
 
 function getScoringConfigFromInputs() {
-    // Ambil nilai dari input
-    const pgkSimpleAllCorrect = getNumInputValue('score-pgk-simple-all-correct', DEFAULT_SCORING_CONFIG.pgk.simpleAllCorrectPoints);
-    const pgkSimplePartial = getNumInputValue('score-pgk-simple-partial', DEFAULT_SCORING_CONFIG.pgk.simplePartialPoints);
-    const pgkSimpleWrong = getNumInputValue('score-pgk-simple-all-wrong', DEFAULT_SCORING_CONFIG.pgk.simpleAllWrongPoints);
-    const pgkSimpleBlank = getNumInputValue('score-pgk-simple-blank', DEFAULT_SCORING_CONFIG.pgk.simpleBlankPoints);
-    const pgkMode = document.getElementById('score-pgk-mode')?.value || DEFAULT_SCORING_CONFIG.pgk.mode;
-    
-    const bsSimpleAllCorrect = getNumInputValue('score-bs-simple-all-correct', DEFAULT_SCORING_CONFIG.bs.simpleAllCorrectPoints);
-    const bsSimplePartial = getNumInputValue('score-bs-simple-partial', DEFAULT_SCORING_CONFIG.bs.simplePartialPoints);
-    const bsSimpleWrong = getNumInputValue('score-bs-simple-all-wrong', DEFAULT_SCORING_CONFIG.bs.simpleAllWrongPoints);
-    const bsSimpleBlank = getNumInputValue('score-bs-simple-blank', DEFAULT_SCORING_CONFIG.bs.simpleBlankPoints);
-    const bsMode = document.getElementById('score-bs-mode')?.value || DEFAULT_SCORING_CONFIG.bs.mode;
-
-    // Hitung maxPoints untuk simple mode (Math.max dari semua nilai simple)
-    const pgkMaxPoints = pgkMode === 'simple' 
-        ? Math.max(pgkSimpleAllCorrect, pgkSimplePartial, pgkSimpleWrong, pgkSimpleBlank, 0)
-        : getNumInputValue('score-pgk-max', DEFAULT_SCORING_CONFIG.pgk.maxPoints);
-    
-    const bsMaxPoints = bsMode === 'simple'
-        ? Math.max(bsSimpleAllCorrect, bsSimplePartial, bsSimpleWrong, bsSimpleBlank, 0)
-        : getNumInputValue('score-bs-max', DEFAULT_SCORING_CONFIG.bs.maxPoints);
-
     return normalizeScoringConfig({
         pg: {
             correctPoints: getNumInputValue('score-pg-correct', DEFAULT_SCORING_CONFIG.pg.correctPoints),
@@ -101,27 +79,27 @@ function getScoringConfigFromInputs() {
             minPoints: getNumInputValue('score-pg-min', DEFAULT_SCORING_CONFIG.pg.minPoints),
         },
         pgk: {
-            mode: pgkMode,
+            mode: document.getElementById('score-pgk-mode')?.value || DEFAULT_SCORING_CONFIG.pgk.mode,
             basePoints: getNumInputValue('score-pgk-base', DEFAULT_SCORING_CONFIG.pgk.basePoints),
             pointsPerCorrectSelection: getNumInputValue('score-pgk-correct', DEFAULT_SCORING_CONFIG.pgk.pointsPerCorrectSelection),
             pointsPerWrongSelection: getNumInputValue('score-pgk-wrong', DEFAULT_SCORING_CONFIG.pgk.pointsPerWrongSelection),
-            maxPoints: pgkMaxPoints,
-            simpleAllCorrectPoints: pgkSimpleAllCorrect,
-            simplePartialPoints: pgkSimplePartial,
-            simpleAllWrongPoints: pgkSimpleWrong,
-            simpleBlankPoints: pgkSimpleBlank,
+            maxPoints: getNumInputValue('score-pgk-max', DEFAULT_SCORING_CONFIG.pgk.maxPoints),
+            simpleAllCorrectPoints: getNumInputValue('score-pgk-simple-all-correct', DEFAULT_SCORING_CONFIG.pgk.simpleAllCorrectPoints),
+            simplePartialPoints: getNumInputValue('score-pgk-simple-partial', DEFAULT_SCORING_CONFIG.pgk.simplePartialPoints),
+            simpleAllWrongPoints: getNumInputValue('score-pgk-simple-all-wrong', DEFAULT_SCORING_CONFIG.pgk.simpleAllWrongPoints),
+            simpleBlankPoints: getNumInputValue('score-pgk-simple-blank', DEFAULT_SCORING_CONFIG.pgk.simpleBlankPoints),
             minPoints: getNumInputValue('score-pgk-min', DEFAULT_SCORING_CONFIG.pgk.minPoints),
         },
         bs: {
-            mode: bsMode,
+            mode: document.getElementById('score-bs-mode')?.value || DEFAULT_SCORING_CONFIG.bs.mode,
             basePoints: getNumInputValue('score-bs-base', DEFAULT_SCORING_CONFIG.bs.basePoints),
             pointsPerCorrectStatement: getNumInputValue('score-bs-correct', DEFAULT_SCORING_CONFIG.bs.pointsPerCorrectStatement),
             pointsPerWrongStatement: getNumInputValue('score-bs-wrong', DEFAULT_SCORING_CONFIG.bs.pointsPerWrongStatement),
-            maxPoints: bsMaxPoints,
-            simpleAllCorrectPoints: bsSimpleAllCorrect,
-            simplePartialPoints: bsSimplePartial,
-            simpleAllWrongPoints: bsSimpleWrong,
-            simpleBlankPoints: bsSimpleBlank,
+            maxPoints: getNumInputValue('score-bs-max', DEFAULT_SCORING_CONFIG.bs.maxPoints),
+            simpleAllCorrectPoints: getNumInputValue('score-bs-simple-all-correct', DEFAULT_SCORING_CONFIG.bs.simpleAllCorrectPoints),
+            simplePartialPoints: getNumInputValue('score-bs-simple-partial', DEFAULT_SCORING_CONFIG.bs.simplePartialPoints),
+            simpleAllWrongPoints: getNumInputValue('score-bs-simple-all-wrong', DEFAULT_SCORING_CONFIG.bs.simpleAllWrongPoints),
+            simpleBlankPoints: getNumInputValue('score-bs-simple-blank', DEFAULT_SCORING_CONFIG.bs.simpleBlankPoints),
             minPoints: getNumInputValue('score-bs-min', DEFAULT_SCORING_CONFIG.bs.minPoints),
         }
     });
@@ -163,6 +141,49 @@ function setScoringInputs(scoringConfig) {
     setVal('score-bs-min', cfg.bs.minPoints);
 
     updateScoringModeUI();
+    validateAndDisplayScoringConfig();
+}
+
+function validateAndDisplayScoringConfig() {
+    const config = getScoringConfigFromInputs();
+    let warnings = [];
+
+    // Validasi PGK
+    if (config.pgk.mode === 'simple') {
+        const pgkMax = Math.max(
+            config.pgk.simpleAllCorrectPoints,
+            config.pgk.simplePartialPoints,
+            config.pgk.simpleAllWrongPoints,
+            config.pgk.simpleBlankPoints
+        );
+        if (config.pgk.maxPoints < pgkMax) {
+            warnings.push(`⚠️ PGK: maxPoints (${config.pgk.maxPoints}) lebih kecil dari nilai tertinggi (${pgkMax}). Siswa tidak bisa dapat nilai penuh.`);
+        }
+    }
+
+    // Validasi BS
+    if (config.bs.mode === 'simple') {
+        const bsMax = Math.max(
+            config.bs.simpleAllCorrectPoints,
+            config.bs.simplePartialPoints,
+            config.bs.simpleAllWrongPoints,
+            config.bs.simpleBlankPoints
+        );
+        if (config.bs.maxPoints < bsMax) {
+            warnings.push(`⚠️ BS: maxPoints (${config.bs.maxPoints}) lebih kecil dari nilai tertinggi (${bsMax}). Siswa tidak bisa dapat nilai penuh.`);
+        }
+    }
+
+    // Tampilkan warning jika ada
+    const warningEl = document.getElementById('scoring-validation-warnings');
+    if (warningEl) {
+        if (warnings.length > 0) {
+            warningEl.innerHTML = warnings.map(w => `<div class="p-2 text-orange-700 bg-orange-50 rounded mb-2">${w}</div>`).join('');
+            warningEl.classList.remove('hidden');
+        } else {
+            warningEl.classList.add('hidden');
+        }
+    }
 }
 
 function updateScoringModeUI() {
@@ -176,6 +197,9 @@ function updateScoringModeUI() {
 
     toggle('score-pgk-mode', 'score-pgk-manual-fields', 'score-pgk-simple-fields');
     toggle('score-bs-mode', 'score-bs-manual-fields', 'score-bs-simple-fields');
+    
+    // Revalidate saat mode berubah
+    setTimeout(() => validateAndDisplayScoringConfig(), 100);
 }
 
 function handleEditLoad() {

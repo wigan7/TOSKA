@@ -40,7 +40,7 @@ Aplikasi ini menggunakan Google Apps Script sebagai backend. Untuk deployment be
 1. **Dapatkan Deployment ID Apps Script:**
    - Buka `Code.gs` di Google Apps Script
    - Klik "Deploy" > pilih "New deployment" atau gunakan yang ada
-   - Copy URL yang berbentuk: `https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec`
+   - Copy URL yang berbentuk: `https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec`
 
 2. **Set Environment Variable:**
    
@@ -63,7 +63,7 @@ Aplikasi ini menggunakan Google Apps Script sebagai backend. Untuk deployment be
    **Untuk Server Sendiri:**
    - Set environment variable sebelum menjalankan aplikasi:
      ```bash
-     export VITE_APPS_SCRIPT_URL="https://script.google.com/macros/s/AKfycbzgqv8S2fdjaQzgD5RNNndk_GYvsBd2s0v1Enofmmu9HmWagLPO3bnI7g5puKgPEiwN/exec"
+     export VITE_APPS_SCRIPT_URL="https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec"
      npm run build
      ```
 
