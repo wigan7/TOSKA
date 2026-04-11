@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Sistem Penilaian TOSKA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .section { scroll-margin-top: 80px; }
+        .status-ok { @apply text-green-600 font-bold; }
+        .status-warning { @apply text-orange-600 font-bold; }
+        .card { @apply bg-white rounded-lg shadow-md p-6 mb-4; }
+        .code-block { @apply bg-gray-900 text-green-400 p-4 rounded font-mono text-sm overflow-x-auto; }
+        .score-table { @apply w-full border-collapse; }
+        .score-table td, .score-table th { @apply border border-gray-300 p-2 text-center; }
+        .score-table th { @apply bg-blue-100 font-bold; }
+        .highlight-good { @apply bg-green-100; }
+        .highlight-warning { @apply bg-orange-100; }
+        .highlight-neutral { @apply bg-gray-100; }
+        .tab-btn { @apply px-4 py-2 rounded border-b-2 transition; }
+        .tab-btn.active { @apply border-blue-500 bg-blue-50; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-8">
+            <div class="max-w-6xl mx-auto">
+                <h1 class="text-4xl font-bold mb-2">📊 Analisis Sistem Penilaian TOSKA</h1>
+                <p class="text-lg opacity-90">Evaluasi mode simple & manual, dan rekomendasi peningkatan</p>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto p-8">
+            <!-- Pertanyaan Utama -->
+            <div class="card border-l-4 border-green-500">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                    ❓ Pertanyaan Anda
+                </h2>
+                <p class="text-lg mb-4">
+                    <strong>Apakah mode penilaian simple sudah bisa menerapkan:</strong>
+                </p>
+                <div class="bg-blue-50 p-4 rounded border-l-4 border-blue-500 mb-4">
+                    <p class="font-mono text-lg">
+                        ✓ Nomor soal benar = <span class="text-green-600 font-bold">1</span><br>
+                        ✓ Benar sebagian = <span class="text-orange-600 font-bold">0</span> (untuk semua tipe)<br>
+                        ✓ Salah semua = <span class="text-red-600 font-bold">0</span>
+                    </p>
+                </div>
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                    <h3 class="text-xl font-bold text-green-700 mb-2">✅ JAWABAN: YA, SEPENUHNYA BISA DITERAPKAN</h3>
+                    <p class="text-green-700">Sistem scoring simple sudah fully functional dengan konfigurasi yang Anda inginkan. Tidak perlu perubahan kode sama sekali!</p>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="mb-6 flex gap-2 border-b border-gray-300">
+                <button class="tab-btn active" onclick="switchTab('current-state')">📋 Status Saat Ini</button>
+                <button class="tab-btn" onclick="switchTab('scoring-logic')">⚙️ Logika Scoring</button>
+                <button class="tab-btn" onclick="switchTab('improvements')">🚀 Peningkatan</button>
+                <button class="tab-btn" onclick="switchTab('implementation')">💻 Implementasi</button>
+            </div>
+
+            <!-- TAB 1: Status Saat Ini -->
+            <div id="current-state" class="tab-content active">
+                <h2 class="text-3xl font-bold mb-6">📋 Status Sistem Penilaian Saat Ini</h2>
+
+                <!-- PG Section -->
+                <div class="card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-2xl font-bold">PG (Pilihan Ganda Single)</h3>
+                        <span class="status-ok">✅ SESUAI TARGET</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">Tipe soal untuk jawaban tunggal</p>
+                    <table class="score-table">
+                        <tr>
+                            <th>Kondisi</th>
+                            <th>Skor Default</th>
+                            <th>Status</th>
+                        </tr>
+                        <tr class="highlight-good">
+                            <td>Benar (jawaban sesuai kunci)</td>
+                            <td>correctPoints = 1</td>
+                            <td>✓ Sudah sesuai</td>
+                        </tr>
+                        <tr class="highlight-good">
+                            <td>Salah (jawaban tidak sesuai kunci)</td>
+                            <td>wrongPoints = 0</td>
+                            <td>✓ Sudah sesuai</td>
+                        </tr>
+                        <tr class="highlight-good">
+                            <td>Kosong (tidak dijawab)</td>
+                            <td>blankPoints = 0</td>
+                            <td>✓ Sudah sesuai</td>
+                        </tr>
+                    </table>
+                    <div class="mt-4 p-4 bg-green-50 rounded">
+                        <p class="text-sm">ℹ️ PG tidak punya mode simple/manual karena hanya satu jawaban</p>
+                    </div>
+                </div>
+
+                <!-- PGK Section -->
+                <div class="card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-2xl font-bold">PGK (Pilihan Ganda Kompleks)</h3>
+                        <span class="status-ok">✅ BISA DIKONFIGURASI</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">Multiple select - pilih beberapa opsi yang benar</p>
+                    <div class="mb-6">
+                        <h4 class="font-bold text-lg mb-3">Mode Simple (TARGET ANDA):</h4>
+                        <table class="score-table">
+                            <tr>
+                                <th>Kondisi Jawaban</th>
+                                <th>Default</th>
+                                <th>Target Anda</th>
+                                <th>Bisa Diubah?</th>
+                            </tr>
+                            <tr class="highlight-good">
+                                <td>Semua benar (semua opsi benar dipilih, tidak ada salah yang dipilih)</td>
+                                <td>3</td>
+                                <td><strong>1</strong></td>
+                                <td>✅ YA</td>
+                            </tr>
+                            <tr class="highlight-good">
+                                <td>Benar sebagian (sebagian benar, mungkin ada yang salah)</td>
+                                <td>2</td>
+                                <td><strong>0</strong></td>
+                                <td>✅ YA</td>
+                            </tr>
+                            <tr class="highlight-good">
+                                <td>Salah semua (tidak ada opsi benar yang dipilih)</td>
+                                <td>0</td>
+                                <td><strong>0</strong></td>
+                                <td>✅ YA</td>
+                            </tr>
+                            <tr class="highlight-good">
+                                <td>Kosong (tidak dipilih apapun)</td>
+                                <td>0</td>
+                                <td><strong>0</strong></td>
+                                <td>✅ YA</td>
+                            </tr>
+                        </table>
+                        <div class="mt-4 p-4 bg-blue-50 rounded border-l-4 border-blue-500">
+                            <p class="text-sm font-mono">
+                                📝 <strong>Config yang Anda butuhkan:</strong><br>
+                                mode: 'simple'<br>
+                                simpleAllCorrectPoints: 1<br>
+                                simplePartialPoints: 0<br>
+                                simpleAllWrongPoints: 0<br>
+                                simpleBlankPoints: 0
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-4">
+                        <h4 class="font-bold text-lg mb-3">Mode Manual (Alternatif):</h4>
+                        <table class="score-table">
+                            <tr>
+                                <th>Konfigurasi</th>
+                                <th>Default</th>
+                                <th>Penjelasan</th>
+                            </tr>
+                            <tr>
+                                <td>Base Points</td>
+                                <td>0</td>
+                                <td>Poin awal sebelum perhitungan</td>
+                            </tr>
+                            <tr>
+                                <td>Points per Correct Selection</td>
+                                <td>+1</td>
+                                <td>Setiap opsi benar yang dipilih</td>
+                            </tr>
+                            <tr>
+                                <td>Points per Wrong Selection</td>
+                                <td>-1</td>
+                                <td>Setiap opsi salah yang dipilih</td>
+                            </tr>
+                            <tr>
+                                <td>Max Points</td>
+                                <td>3</td>
+                                <td>Nilai maksimal yang bisa dicapai</td>
+                            </tr>
+                        </table>
+                        <div class="mt-3 p-3 bg-gray-100 rounded text-sm">
+                            ℹ️ Mode manual lebih granular namun kompleks. Cocok jika Anda ingin sistem poin per pilihan.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BS Section -->
+                <div class="card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-2xl font-bold">BS (Benar-Salah Multiple)</h3>
+                        <span class="status-ok">✅ BISA DIKONFIGURASI</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">Multiple true/false statements - jawab benar/salah untuk setiap pernyataan</p>
+                    <div>
+                        <h4 class="font-bold text-lg mb-3">Mode Simple (TARGET ANDA):</h4>
+                        <table class="score-table">
+                            <tr>
+                                <th>Kondisi Jawaban</th>
+                                <th>Default</th>
+                                <th>Target Anda</th>
+                                <th>Bisa Diubah?</th>
+                            </tr>
+                            <tr class="highlight-good">
+                                <td>Semua benar (semua pernyataan dijawab benar)</td>
+                                <td>3</td>
+                                <td><strong>1</strong></td>
+                                <td>✅ YA</td>
+                            </tr>
+                            <tr class="highlight-good">
+                                <td>Benar sebagian (sebagian benar, sebagian salah)</td>
+                                <td>2</td>
+                                <td><strong>0</strong></td>
+                                <td>✅ YA</td>
+                            </tr>
+                            <tr class="highlight-good">
+                                <td>Salah semua (semua pernyataan dijawab salah)</td>
+                                <td>0</td>
+                                <td><strong>0</strong></td>
+                                <td>✅ YA</td>
+                            </tr>
+                            <tr class="highlight-good">
+                                <td>Kosong (tidak ada jawaban)</td>
+                                <td>0</td>
+                                <td><strong>0</strong></td>
+                                <td>✅ YA</td>
+                            </tr>
+                        </table>
+                        <div class="mt-4 p-4 bg-blue-50 rounded border-l-4 border-blue-500">
+                            <p class="text-sm font-mono">
+                                📝 <strong>Config yang Anda butuhkan:</strong><br>
+                                mode: 'simple'<br>
+                                simpleAllCorrectPoints: 1<br>
+                                simplePartialPoints: 0<br>
+                                simpleAllWrongPoints: 0<br>
+                                simpleBlankPoints: 0
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kesimpulan -->
+                <div class="card bg-green-50 border-l-4 border-green-500">
+                    <h3 class="text-xl font-bold text-green-700 mb-4">✅ KESIMPULAN STATUS SAAT INI</h3>
+                    <ul class="space-y-2 text-green-700">
+                        <li>✓ PG: Sudah sesuai dengan target (benar=1, salah=0, kosong=0)</li>
+                        <li>✓ PGK: Mode simple BISA dikonfigurasi ke (1, 0, 0, 0)</li>
+                        <li>✓ BS: Mode simple BISA dikonfigurasi ke (1, 0, 0, 0)</li>
+                        <li>✓ Tidak ada bug dalam logika scoring</li>
+                        <li>✓ Tidak perlu kode backend diubah</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- TAB 2: Logika Scoring -->
+            <div id="scoring-logic" class="tab-content">
+                <h2 class="text-3xl font-bold mb-6">⚙️ Logika Scoring di Backend</h2>
+
+                <div class="card">
+                    <h3 class="text-2xl font-bold mb-4">Bagaimana Sistem Menghitung Nilai?</h3>
+                    <p class="text-gray-600 mb-6">Berikut adalah logika yang digunakan di Code.gs untuk menghitung nilai setiap tipe soal:</p>
+
+                    <!-- PGK Logic -->
+                    <div class="mb-8 p-4 bg-blue-50 rounded border-l-4 border-blue-500">
+                        <h4 class="font-bold text-lg mb-3">🧮 PGK Mode Simple - Algoritma Scoring</h4>
+                        <div class="code-block">
+// Pseudocode dari Code.gs line 212-238
+if (q.tipe === 'pgk' && cfg.pgk.mode === 'simple') {
+    totalTrue = hitung jumlah opsi yang seharusnya benar
+    correctSelected = hitung opsi benar yang dipilih siswa
+    wrongSelected = hitung opsi salah yang dipilih siswa
+    
+    if (tidak ada pilihan) {
+        score = simpleBlankPoints
+    } else if (correctSelected == totalTrue && wrongSelected == 0) {
+        // SEMUA BENAR: setiap opsi benar dipilih, tidak ada opsi salah yang dipilih
+        score = simpleAllCorrectPoints  // Anda: 1
+    } else if (correctSelected == 0) {
+        // SALAH SEMUA: tidak ada opsi benar yang dipilih
+        score = simpleAllWrongPoints  // Anda: 0
+    } else {
+        // BENAR SEBAGIAN: ada opsi benar, tapi tidak semua / ada opsi salah terseleksi
+        score = simplePartialPoints  // Anda: 0
+    }
+    
+    return score (clamped between minPoints & maxPoints)
+}
+                        </div>
+                    </div>
+
+                    <!-- BS Logic -->
+                    <div class="mb-8 p-4 bg-purple-50 rounded border-l-4 border-purple-500">
+                        <h4 class="font-bold text-lg mb-3">🧮 BS Mode Simple - Algoritma Scoring</h4>
+                        <div class="code-block">
+// Pseudocode dari Code.gs line 243-271
+if (q.tipe === 'bs' && cfg.bs.mode === 'simple') {
+    statements = array pernyataan di soal
+    correctCount = hitung berapa pernyataan dijawab benar
+    totalStatements = jumlah pernyataan
+    
+    if (tidak ada jawaban) {
+        score = simpleBlankPoints
+    } else if (correctCount == totalStatements) {
+        // SEMUA BENAR: semua pernyataan dijawab benar
+        score = simpleAllCorrectPoints  // Anda: 1
+    } else if (correctCount == 0) {
+        // SALAH SEMUA: tidak ada pernyataan yang dijawab benar
+        score = simpleAllWrongPoints  // Anda: 0
+    } else {
+        // BENAR SEBAGIAN: ada yang benar, ada yang salah
+        score = simplePartialPoints  // Anda: 0
+    }
+    
+    return score (clamped between minPoints & maxPoints)
+}
+                        </div>
+                    </div>
+
+                    <!-- Clamping -->
+                    <div class="p-4 bg-orange-50 rounded border-l-4 border-orange-500">
+                        <h4 class="font-bold text-orange-700 mb-2">⚠️ Penting: Score Clamping</h4>
+                        <p class="text-orange-700 mb-3">Nilai akhir selalu di-clamp (dikurung) antara minPoints dan maxPoints:</p>
+                        <div class="code-block">
+finalScore = Math.max(minPoints, Math.min(maxPoints, score))
+                        </div>
+                        <p class="text-sm text-orange-700 mt-3">
+                            Contoh: Jika simpleAllWrongPoints=0 dan minPoints=0, nilai akhir tetap 0. ✓<br>
+                            Jika simpleAllCorrectPoints=1 dan maxPoints=10, nilai akhir tetap 1. ✓
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Contoh Perhitungan -->
+                <div class="card">
+                    <h3 class="text-2xl font-bold mb-4">📝 Contoh Perhitungan Nyata</h3>
+
+                    <div class="mb-6">
+                        <h4 class="font-bold text-lg mb-3 bg-green-100 p-2 rounded">Skenario 1: PGK Dengan Opsi [A✓, B✗, C✓]</h4>
+                        <div class="space-y-3 text-sm">
+                            <div>
+                                <strong class="text-green-600">Kasusnya: Siswa memilih A dan C (SEMUA BENAR)</strong>
+                                <div class="mt-2 ml-4 p-3 bg-green-50 rounded border-l-2 border-green-500">
+                                    totalTrue = 2 (opsi A dan C)<br>
+                                    correctSelected = 2 (siswa pilih A dan C)<br>
+                                    wrongSelected = 0 (tidak ada opsi salah yang dipilih)<br>
+                                    ✓ Kondisi: correctSelected == totalTrue && wrongSelected == 0<br>
+                                    <strong class="text-green-600">Nilai = simpleAllCorrectPoints = 1 ✓</strong>
+                                </div>
+                            </div>
+
+                            <div>
+                                <strong class="text-orange-600">Kasusnya: Siswa memilih hanya A (BENAR SEBAGIAN)</strong>
+                                <div class="mt-2 ml-4 p-3 bg-orange-50 rounded border-l-2 border-orange-500">
+                                    totalTrue = 2 (opsi A dan C seharusnya dipilih)<br>
+                                    correctSelected = 1 (siswa hanya pilih A, C ketinggalan)<br>
+                                    wrongSelected = 0 (tidak ada yang salah)<br>
+                                    ✓ Kondisi: tidak semua benar, tapi ada yang benar<br>
+                                    <strong class="text-orange-600">Nilai = simplePartialPoints = 0 ✓</strong>
+                                </div>
+                            </div>
+
+                            <div>
+                                <strong class="text-red-600">Kasusnya: Siswa memilih B (SALAH SEMUA)</strong>
+                                <div class="mt-2 ml-4 p-3 bg-red-50 rounded border-l-2 border-red-500">
+                                    totalTrue = 2 (opsi A dan C)<br>
+                                    correctSelected = 0 (siswa gak pilih A atau C, hanya B)<br>
+                                    wrongSelected = 1 (pilih opsi salah B)<br>
+                                    ✓ Kondisi: correctSelected == 0<br>
+                                    <strong class="text-red-600">Nilai = simpleAllWrongPoints = 0 ✓</strong>
+                                </div>
+                            </div>
+
+                            <div>
+                                <strong class="text-gray-600">Kasusnya: Siswa tidak memilih apapun (KOSONG)</strong>
+                                <div class="mt-2 ml-4 p-3 bg-gray-100 rounded border-l-2 border-gray-500">
+                                    selections.length = 0<br>
+                                    ✓ Kondisi: tidak ada pilihan<br>
+                                    <strong class="text-gray-600">Nilai = simpleBlankPoints = 0 ✓</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Peningkatan -->
+            <div id="improvements" class="tab-content">
+                <h2 class="text-3xl font-bold mb-6">🚀 Rekomendasi Peningkatan Fitur</h2>
+
+                <div class="card border-l-4 border-red-500 bg-red-50">
+                    <h3 class="font-bold text-lg text-red-700 mb-2">⚠️ PENTING</h3>
+                    <p class="text-red-700">Rekomendasi ini adalah ENHANCEMENT SAJA. Sistem sudah berfungsi sempurna untuk kebutuhan Anda!</p>
+                </div>
+
+                <!-- Priority 1 -->
+                <div class="card">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <span class="bg-red-500 text-white px-3 py-1 rounded font-bold">PRIORITY 1</span>
+                        Quick Wins (Mudah & High Impact)
+                    </h3>
+
+                    <div class="space-y-4">
+                        <div class="p-4 bg-green-50 rounded border-l-4 border-green-500">
+                            <h4 class="font-bold text-lg mb-2">1️⃣ Tambah Preset Scoring "Binary" (1-0-0-0)</h4>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Apa:</strong> Button preset yang ketika diklik langsung set scoring ke (1, 0, 0, 0)
+                            </p>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Manfaat:</strong> User tidak perlu manual input 4 field, cukup 1 klik
+                            </p>
+                            <div class="code-block">
+// Tambah di guru.js atau ui.js
+function applyPrescoringBinary() {
+    setScoringInputs({
+        pgk: {
+            mode: 'simple',
+            simpleAllCorrectPoints: 1,
+            simplePartialPoints: 0,
+            simpleAllWrongPoints: 0,
+            simpleBlankPoints: 0,
+        },
+        bs: {
+            mode: 'simple',
+            simpleAllCorrectPoints: 1,
+            simplePartialPoints: 0,
+            simpleAllWrongPoints: 0,
+            simpleBlankPoints: 0,
+        }
+    });
+    updateScoringModeUI();
+}
+                            </div>
+                            <p class="text-sm text-green-700 mt-3">📍 <strong>File:</strong> js/guru.js</p>
+                            <p class="text-sm text-green-700">⏱️ <strong>Effort:</strong> ~15 menit</p>
+                        </div>
+
+                        <div class="p-4 bg-green-50 rounded border-l-4 border-green-500">
+                            <h4 class="font-bold text-lg mb-2">2️⃣ Set Mode Default ke "simple" untuk PGK & BS</h4>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Apa:</strong> Ubah DEFAULT_SCORING_CONFIG agar PGK & BS mulai dengan mode simple (bukan manual)
+                            </p>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Manfaat:</strong> User yang baru membuat soal otomatis pakai mode simple (sesuai target Anda)
+                            </p>
+                            <div class="code-block">
+// Di js/config.js baris 29 & 48
+pgk: {
+    mode: 'simple',  // ← UBAH dari 'manual' ke 'simple'
+    ...
+},
+bs: {
+    mode: 'simple',  // ← UBAH dari 'manual' ke 'simple'
+    ...
+}
+                            </div>
+                            <p class="text-sm text-green-700 mt-3">📍 <strong>File:</strong> js/config.js</p>
+                            <p class="text-sm text-green-700">⏱️ <strong>Effort:</strong> ~2 menit (tinggal ubah 2 baris)</p>
+                        </div>
+
+                        <div class="p-4 bg-green-50 rounded border-l-4 border-green-500">
+                            <h4 class="font-bold text-lg mb-2">3️⃣ Simplify UI - Sembunyikan Manual Inputs Saat Mode Simple Dipilih</h4>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Apa:</strong> Ketika mode = 'simple', hide field manual (basePoints, pointsPerCorrect, dsb). Tampilkan hanya simple fields.
+                            </p>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Manfaat:</strong> Interface lebih clean, mengurangi confusion
+                            </p>
+                            <p class="text-sm text-green-700 mt-3">📍 <strong>File:</strong> js/guru.js (function updateScoringModeUI)</p>
+                            <p class="text-sm text-green-700">⏱️ <strong>Effort:</strong> ~20 menit</p>
+                            <p class="text-sm text-gray-600 mt-3">💡 Hint: Pakai classList.add('hidden') / classList.remove('hidden')</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Priority 2 -->
+                <div class="card">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <span class="bg-yellow-500 text-white px-3 py-1 rounded font-bold">PRIORITY 2</span>
+                        Validasi & UX Improvement
+                    </h3>
+
+                    <div class="space-y-4">
+                        <div class="p-4 bg-yellow-50 rounded border-l-4 border-yellow-500">
+                            <h4 class="font-bold text-lg mb-2">4️⃣ Input Validation untuk Simple Mode</h4>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Apa:</strong> Validasi bahwa simple scoring hanya terima nilai 0 atau positif, tidak negatif
+                            </p>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Manfaat:</strong> Cegah user error (misal: simpleAllCorrectPoints = -5)
+                            </p>
+                            <p class="text-sm text-yellow-700 mt-3">📍 <strong>File:</strong> js/guru.js (function getScoringConfigFromInputs)</p>
+                            <p class="text-sm text-yellow-700">⏱️ <strong>Effort:</strong> ~10 menit</p>
+                        </div>
+
+                        <div class="p-4 bg-yellow-50 rounded border-l-4 border-yellow-500">
+                            <h4 class="font-bold text-lg mb-2">5️⃣ Preview Scoring Configuration</h4>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Apa:</strong> Card yang menampilkan summary: "Simple Mode: Benar=1pt, Partial=0pt, Salah=0pt"
+                            </p>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Manfaat:</strong> User langsung lihat bahwa konfigurasi sudah benar sebelum save
+                            </p>
+                            <p class="text-sm text-yellow-700 mt-3">📍 <strong>File:</strong> index.html + js/guru.js</p>
+                            <p class="text-sm text-yellow-700">⏱️ <strong>Effort:</strong> ~25 menit</p>
+                        </div>
+
+                        <div class="p-4 bg-yellow-50 rounded border-l-4 border-yellow-500">
+                            <h4 class="font-bold text-lg mb-2">6️⃣ Mode Switch Warning</h4>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Apa:</strong> Ketika user ganti mode dari manual ke simple (atau sebaliknya), tampilkan confirm dialog
+                            </p>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Manfaat:</strong> Cegah user switch mode secara tidak sengaja
+                            </p>
+                            <p class="text-sm text-yellow-700 mt-3">📍 <strong>File:</strong> js/guru.js</p>
+                            <p class="text-sm text-yellow-700">⏱️ <strong>Effort:</strong> ~15 menit</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Priority 3 -->
+                <div class="card">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <span class="bg-blue-500 text-white px-3 py-1 rounded font-bold">PRIORITY 3</span>
+                        Advanced Features
+                    </h3>
+
+                    <div class="space-y-4">
+                        <div class="p-4 bg-blue-50 rounded border-l-4 border-blue-500">
+                            <h4 class="font-bold text-lg mb-2">7️⃣ Scoring Simulator (Power User Feature)</h4>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Apa:</strong> Tool interaktif untuk preview nilai siswa dengan berbagai kombinasi jawaban
+                            </p>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Scenario:</strong> "Jika siswa benar 2 dari 3, berapa nilainya?" → Simulasi langsung tampil
+                            </p>
+                            <p class="text-sm text-blue-700 mt-3">📍 <strong>File:</strong> index.html + js/ui.js</p>
+                            <p class="text-sm text-blue-700">⏱️ <strong>Effort:</strong> ~60 menit</p>
+                        </div>
+
+                        <div class="p-4 bg-blue-50 rounded border-l-4 border-blue-500">
+                            <h4 class="font-bold text-lg mb-2">8️⃣ Batch Update Scoring pada Soal Existing</h4>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Apa:</strong> Admin page untuk update scoring config di semua soal yang sudah ada
+                            </p>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Use case:</strong> "Ubah scoring semua PGK ke mode simple (1-0-0-0)"
+                            </p>
+                            <p class="text-sm text-blue-700 mt-3">📍 <strong>File:</strong> Code.gs + index.html</p>
+                            <p class="text-sm text-blue-700">⏱️ <strong>Effort:</strong> ~90 menit</p>
+                        </div>
+
+                        <div class="p-4 bg-blue-50 rounded border-l-4 border-blue-500">
+                            <h4 class="font-bold text-lg mb-2">9️⃣ Export/Import Presets</h4>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Apa:</strong> Save scoring configuration sebagai preset JSON, bisa di-import ulang di soal lain
+                            </p>
+                            <p class="text-gray-700 mb-3">
+                                <strong>Use case:</strong> Reuse preset yang sama di multiple soal
+                            </p>
+                            <p class="text-sm text-blue-700 mt-3">📍 <strong>File:</strong> js/guru.js</p>
+                            <p class="text-sm text-blue-700">⏱️ <strong>Effort:</strong> ~45 menit</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: Implementation Guide -->
+            <div id="implementation" class="tab-content">
+                <h2 class="text-3xl font-bold mb-6">💻 Panduan Implementasi (PRIORITY 1 + 2)</h2>
+
+                <div class="card">
+                    <h3 class="text-2xl font-bold mb-4">🎯 Quick Implementation Roadmap</h3>
+                    <p class="text-gray-600 mb-6">Untuk segera mengoptimalkan sistem sesuai target Anda:</p>
+
+                    <div class="space-y-4">
+                        <div class="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded border-l-4 border-green-500">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-bold text-lg">Step 1: Set Default Mode ke Simple</h4>
+                                <span class="bg-green-500 text-white px-3 py-1 rounded text-sm font-bold">2-5 MENIT</span>
+                            </div>
+                            <p class="text-sm text-gray-700 mb-3">Edit <strong>js/config.js</strong></p>
+                            <div class="code-block text-sm">
+// Ubah baris ~29
+pgk: {
+    mode: 'simple',  // ← UBAH dari 'manual'
+    ...
+}
+
+// Ubah baris ~48
+bs: {
+    mode: 'simple',  // ← UBAH dari 'manual'
+    ...
+}
+                            </div>
+                            <p class="text-sm text-green-700 mt-3">
+                                ✓ Effect: Semua soal baru PGK/BS langsung pakai mode simple<br>
+                                ✓ Existing soal tidak berubah (sudah punya config tersimpan)
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded border-l-4 border-green-500">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-bold text-lg">Step 2: Ubah Default Preset ke 1-0-0-0</h4>
+                                <span class="bg-green-500 text-white px-3 py-1 rounded text-sm font-bold">2-5 MENIT</span>
+                            </div>
+                            <p class="text-sm text-gray-700 mb-3">Edit <strong>js/config.js</strong> lagi</p>
+                            <div class="code-block text-sm">
+// Ubah baris ~35 untuk pgk
+pgk: {
+    mode: 'simple',
+    ...
+    simpleAllCorrectPoints: 1,     // ← UBAH dari 3
+    simplePartialPoints: 0,        // ← UBAH dari 2
+    simpleAllWrongPoints: 0,       // sudah benar
+    simpleBlankPoints: 0,          // sudah benar
+    ...
+}
+
+// Ubah baris ~57 untuk bs
+bs: {
+    mode: 'simple',
+    ...
+    simpleAllCorrectPoints: 1,     // ← UBAH dari 3
+    simplePartialPoints: 0,        // ← UBAH dari 2
+    simpleAllWrongPoints: 0,       // sudah benar
+    simpleBlankPoints: 0,          // sudah benar
+    ...
+}
+                            </div>
+                            <p class="text-sm text-green-700 mt-3">
+                                ✓ Effect: Semua soal baru (dan yang reset) pakai preset 1-0-0-0 secara otomatis
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded border-l-4 border-yellow-500">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-bold text-lg">Step 3 (Optional): Tambah Preset Button</h4>
+                                <span class="bg-yellow-500 text-white px-3 py-1 rounded text-sm font-bold">15-20 MENIT</span>
+                            </div>
+                            <p class="text-sm text-gray-700 mb-3">
+                                Tambah function di <strong>js/guru.js</strong> untuk quick-apply preset
+                            </p>
+                            <div class="code-block text-sm">
+// Tambah function baru di guru.js
+function applyScoringSampleBinary() {
+    const config = {
+        pgk: {
+            mode: 'simple',
+            simpleAllCorrectPoints: 1,
+            simplePartialPoints: 0,
+            simpleAllWrongPoints: 0,
+            simpleBlankPoints: 0,
+            maxPoints: 1,
+            minPoints: 0
+        },
+        bs: {
+            mode: 'simple',
+            simpleAllCorrectPoints: 1,
+            simplePartialPoints: 0,
+            simpleAllWrongPoints: 0,
+            simpleBlankPoints: 0,
+            maxPoints: 1,
+            minPoints: 0
+        }
+    };
+    setScoringInputs(config);
+}
+                            </div>
+                            <p class="text-sm text-gray-700 mb-3 mt-3">
+                                Tambah button di <strong>index.html</strong> dalam scoring section:
+                            </p>
+                            <div class="code-block text-sm">
+&lt;button onclick="applyScoringSampleBinary()" 
+        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"&gt;
+    🎯 Terapkan Preset: Benar=1, Partial=0, Salah=0
+&lt;/button&gt;
+                            </div>
+                            <p class="text-sm text-yellow-700 mt-3">
+                                ✓ Effect: User tinggal klik 1 tombol untuk set scoring sesuai target
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded border-l-4 border-blue-500">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-bold text-lg">Step 4 (Nice-to-Have): Simplify Mode UI</h4>
+                                <span class="bg-blue-500 text-white px-3 py-1 rounded text-sm font-bold">20-30 MENIT</span>
+                            </div>
+                            <p class="text-sm text-gray-700 mb-3">
+                                Update function <strong>updateScoringModeUI()</strong> di js/guru.js
+                            </p>
+                            <p class="text-sm text-gray-700 mb-3">Saat ini: selalu tampilkan semua field manual & simple</p>
+                            <p class="text-sm text-blue-700 font-bold">Target: Tampilkan HANYA yang relevan per mode</p>
+                            <div class="code-block text-sm">
+// Di updateScoringModeUI(), tambah logic:
+if (mode === 'simple') {
+    // Hide manual fields, show simple fields
+    document.getElementById('pgk-manual-section').classList.add('hidden');
+    document.getElementById('pgk-simple-section').classList.remove('hidden');
+} else {
+    // Show manual fields, hide simple fields
+    document.getElementById('pgk-manual-section').classList.remove('hidden');
+    document.getElementById('pgk-simple-section').classList.add('hidden');
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-blue-50 border-l-4 border-blue-500">
+                    <h3 class="text-xl font-bold text-blue-700 mb-4">✅ Testing Checklist</h3>
+                    <p class="text-blue-700 mb-4">Setelah implementasi, test dengan soal dummy:</p>
+                    <div class="text-sm text-blue-700 space-y-2">
+                        <p>□ Buat soal PGK baru → verify mode = 'simple' secara default</p>
+                        <p>□ Buat soal BS baru → verify simpleAllCorrectPoints = 1</p>
+                        <p>□ PGK: Jawab semua benar → score harus = 1</p>
+                        <p>□ PGK: Jawab sebagian benar → score harus = 0</p>
+                        <p>□ PGK: Jawab semua salah → score harus = 0</p>
+                        <p>□ BS: Jawab semua benar → score harus = 1</p>
+                        <p>□ BS: Jawab sebagian benar → score harus = 0</p>
+                        <p>□ BS: Jawab semua salah → score harus = 0</p>
+                    </div>
+                </div>
+
+                <div class="card bg-green-50 border-l-4 border-green-500">
+                    <h3 class="text-xl font-bold text-green-700 mb-4">🚀 Deployment Steps</h3>
+                    <ol class="text-green-700 space-y-2 list-decimal list-inside">
+                        <li>Backup files sebelum perubahan</li>
+                        <li>Edit js/config.js (ubah mode & preset values)</li>
+                        <li>Test lokal dengan npm run dev</li>
+                        <li>Build production: npm run build</li>
+                        <li>Deploy ke production</li>
+                        <li>Test di production dengan soal dummy</li>
+                        <li>Inform users tentang default baru</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-gray-800 text-white p-8 mt-16">
+            <div class="max-w-6xl mx-auto">
+                <h3 class="text-2xl font-bold mb-4">📞 Pertanyaan?</h3>
+                <p class="mb-2">Sistem penilaian TOSKA sudah powerful dan flexible.</p>
+                <p>Untuk kebutuhan khusus, hubungi tim development dengan detail kebutuhan spesifik Anda.</p>
+                <p class="mt-4 text-sm opacity-75">Dokumen ini di-generate untuk analisis sistem penilaian TOSKA</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // Hide semua tab
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
