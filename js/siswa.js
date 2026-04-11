@@ -348,29 +348,69 @@ function normalizeIndex(value) {
     return Number.isFinite(n) ? n : null;
 }
 
+function dedupeNumberArray(arr) {
+    const seen = {};
+    return (arr || []).filter(n => {
+        const key = String(n);
+        if (seen[key]) return false;
+        seen[key] = true;
+        return true;
+    });
+}
+
+function hasMeaningfulText(value) {
+    return String(value || '').trim() !== '';
+}
+
+function isValidPgkOption(option) {
+    return !!(option && (hasMeaningfulText(option.text) || hasMeaningfulText(option.img)));
+}
+
+function isKeyedBsStatement(statement) {
+    if (!statement) return false;
+    const key = String(statement.kunci || '').trim().toUpperCase();
+    return key === 'B' || key === 'S';
+}
+
 function scoreQuestion(q, ans, scoringConfig) {
     const cfg = normalizeScoringConfig(scoringConfig || DEFAULT_SCORING_CONFIG);
 
     if (q.tipe === 'pg') {
-        const maxPoints = cfg.pg.maxPoints;
+        const keyIdx = normalizeIndex(q.kunci);
+        if (keyIdx === null) {
+            return { score: 0, maxPoints: 0 };
+        }
+
+        const maxPoints = Math.max(cfg.pg.maxPoints, cfg.pg.minPoints);
         const minPoints = cfg.pg.minPoints;
         let score = cfg.pg.blankPoints;
         const ansIdx = normalizeIndex(ans);
-        const keyIdx = normalizeIndex(q.kunci);
         if (ansIdx !== null) {
-            score = (keyIdx !== null && ansIdx === keyIdx) ? cfg.pg.correctPoints : cfg.pg.wrongPoints;
+            score = (ansIdx === keyIdx) ? cfg.pg.correctPoints : cfg.pg.wrongPoints;
         }
         return { score: clampScore(score, minPoints, maxPoints), maxPoints };
     }
 
     if (q.tipe === 'pgk') {
         const minPoints = cfg.pgk.minPoints;
+        const validOptions = (q.opsi || []).map((op, idx) => ({ idx, op })).filter(entry => isValidPgkOption(entry.op));
+        const validOptionIndexSet = {};
+        validOptions.forEach(entry => {
+            validOptionIndexSet[entry.idx] = true;
+        });
+
+        const validCorrectCount = validOptions.filter(entry => !!entry.op.isTrue).length;
         const studentSelections = Array.isArray(ans)
-            ? ans.map(normalizeIndex).filter(i => i !== null)
+            ? dedupeNumberArray(ans.map(normalizeIndex).filter(i => i !== null && validOptionIndexSet[i]))
             : [];
 
+        const dynamicMaxPoints = Math.max(validCorrectCount, minPoints);
+
+        if (validCorrectCount === 0) {
+            return { score: 0, maxPoints: 0 };
+        }
+
         if (cfg.pgk.mode === 'simple') {
-            const totalTrue = (q.opsi || []).filter(op => op && op.isTrue).length;
             let correctSelected = 0;
             let wrongSelected = 0;
             studentSelections.forEach(optIdx => {
@@ -382,18 +422,18 @@ function scoreQuestion(q, ans, scoringConfig) {
             if (studentSelections.length === 0) {
                 score = cfg.pgk.simpleBlankPoints;
             } else {
-                const isAllCorrect = totalTrue > 0 && correctSelected === totalTrue && wrongSelected === 0 && studentSelections.length === totalTrue;
+                const isAllCorrect = validCorrectCount > 0 && correctSelected === validCorrectCount && wrongSelected === 0 && studentSelections.length === validCorrectCount;
                 const isAllWrong = correctSelected === 0;
                 if (isAllCorrect) score = cfg.pgk.simpleAllCorrectPoints;
                 else if (isAllWrong) score = cfg.pgk.simpleAllWrongPoints;
                 else score = cfg.pgk.simplePartialPoints;
             }
 
-            const maxPoints = Math.max(cfg.pgk.simpleAllCorrectPoints, cfg.pgk.simplePartialPoints, cfg.pgk.simpleAllWrongPoints, cfg.pgk.simpleBlankPoints, minPoints);
+            const maxPoints = dynamicMaxPoints;
             return { score: clampScore(score, minPoints, maxPoints), maxPoints };
         }
 
-        const maxPoints = cfg.pgk.maxPoints;
+        const maxPoints = dynamicMaxPoints;
         let score = cfg.pgk.basePoints;
         studentSelections.forEach(optIdx => {
             if ((q.opsi || [])[optIdx] && (q.opsi || [])[optIdx].isTrue) score += cfg.pgk.pointsPerCorrectSelection;
@@ -404,36 +444,45 @@ function scoreQuestion(q, ans, scoringConfig) {
 
     if (q.tipe === 'bs') {
         const minPoints = cfg.bs.minPoints;
-        const statements = q.pernyataan || [];
+        const statements = (q.pernyataan || []).map((statement, idx) => ({ idx, statement })).filter(entry => isKeyedBsStatement(entry.statement));
+        const keyedCount = statements.length;
+
+        if (keyedCount === 0) {
+            return { score: 0, maxPoints: 0 };
+        }
+
+        const dynamicMaxPoints = Math.max(keyedCount, minPoints);
 
         if (cfg.bs.mode === 'simple') {
             const answers = (ans && typeof ans === 'object') ? ans : {};
-            const answeredCount = Object.keys(answers).length;
-            const totalStatements = statements.length;
+            const answeredCount = statements.reduce((total, entry) => {
+                const v = answers[entry.idx];
+                return total + ((v === 'B' || v === 'S') ? 1 : 0);
+            }, 0);
             let correctCount = 0;
-            statements.forEach((s, sIdx) => {
-                if (s.kunci && answers[sIdx] === s.kunci) correctCount++;
+            statements.forEach(entry => {
+                if (answers[entry.idx] === entry.statement.kunci) correctCount++;
             });
 
             let score = cfg.bs.simpleBlankPoints;
             if (answeredCount === 0) {
                 score = cfg.bs.simpleBlankPoints;
             } else {
-                const isAllCorrect = totalStatements > 0 && correctCount === totalStatements;
+                const isAllCorrect = keyedCount > 0 && correctCount === keyedCount;
                 const isAllWrong = correctCount === 0;
                 if (isAllCorrect) score = cfg.bs.simpleAllCorrectPoints;
                 else if (isAllWrong) score = cfg.bs.simpleAllWrongPoints;
                 else score = cfg.bs.simplePartialPoints;
             }
 
-            const maxPoints = Math.max(cfg.bs.simpleAllCorrectPoints, cfg.bs.simplePartialPoints, cfg.bs.simpleAllWrongPoints, cfg.bs.simpleBlankPoints, minPoints);
+            const maxPoints = dynamicMaxPoints;
             return { score: clampScore(score, minPoints, maxPoints), maxPoints };
         }
 
-        const maxPoints = cfg.bs.maxPoints;
+        const maxPoints = dynamicMaxPoints;
         let score = cfg.bs.basePoints;
-        statements.forEach((s, sIdx) => {
-            if (s.kunci && ans && ans[sIdx] === s.kunci) score += cfg.bs.pointsPerCorrectStatement;
+        statements.forEach(entry => {
+            if (ans && ans[entry.idx] === entry.statement.kunci) score += cfg.bs.pointsPerCorrectStatement;
             else score += cfg.bs.pointsPerWrongStatement;
         });
         return { score: clampScore(score, minPoints, maxPoints), maxPoints };
@@ -454,7 +503,9 @@ function submitExam(isAutoSubmit) {
         maxPossiblePoints += result.maxPoints;
         totalStudentPoints += result.score;
     });
-    const finalScore = maxPossiblePoints > 0 ? Math.max(0, Math.round((totalStudentPoints / maxPossiblePoints) * 100)) : 0;
+    const finalScore = maxPossiblePoints > 0
+        ? Math.max(0, Math.min(100, Number(((totalStudentPoints / maxPossiblePoints) * 100).toFixed(2))))
+        : 0;
     document.getElementById('score-display').innerText = finalScore;
     document.getElementById('pesan-hasil').innerText = isAutoSubmit ? "Waktu Habis! Jawaban tersimpan." : "Kamu telah menyelesaikan ujian.";
     navTo('layer-result');

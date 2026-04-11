@@ -202,15 +202,26 @@ function prosesCetakKunci(data) {
         data.konten.forEach(item => {
             let answerHtml = '';
             if (item.tipe === 'pg') {
-                maxPoints += 1;
+                const hasValidKey = item.kunci !== null && item.kunci !== undefined && item.kunci !== '';
+                if (hasValidKey) maxPoints += 1;
                 let k = item.kunci !== null && item.kunci !== undefined ? String.fromCharCode(65 + parseInt(item.kunci)) : '-';
                 answerHtml = `<span style="font-weight:bold;">${k}</span>`;
             } else if (item.tipe === 'pgk') {
-                maxPoints += 3;
+                let validTrueCount = 0;
                 let keys = []; (item.opsi || []).forEach((op, idx) => { if (op.isTrue) keys.push(String.fromCharCode(65 + idx)); });
+                (item.opsi || []).forEach((op) => {
+                    const isValid = !!(op && (String(op.text || '').trim() !== '' || String(op.img || '').trim() !== ''));
+                    if (isValid && op.isTrue) validTrueCount++;
+                });
+                maxPoints += validTrueCount;
                 answerHtml = `<span style="font-weight:bold; font-size: 9pt;">Ctk: ${keys.length > 0 ? keys.join(', ') : '-'}</span>`;
             } else if (item.tipe === 'bs') {
-                maxPoints += 3;
+                let keyedCount = 0;
+                (item.pernyataan || []).forEach((p) => {
+                    const key = String(p?.kunci || '').trim().toUpperCase();
+                    if (key === 'B' || key === 'S') keyedCount++;
+                });
+                maxPoints += keyedCount;
                 let keysHtml = (item.pernyataan || []).map((p, idx) => `p${idx + 1}:<strong>${p.kunci || '-'}</strong>`).join(' | ');
                 answerHtml = `<span style="font-size: 9pt;">${keysHtml || '-'}</span>`;
             }
@@ -221,7 +232,7 @@ function prosesCetakKunci(data) {
         });
     }
     content += `</div>`;
-    content += `<div style="max-width: 600px; margin: 30px auto 0; padding: 15px; border: 1px dashed #000; background-color: #fdfdfd; break-inside: avoid; page-break-inside: avoid;"><h4 style="margin-top: 5px; margin-bottom: 10px; font-size: 11pt; text-align: center;">📋 Panduan Penilaian</h4><table style="width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 10px;"><thead><tr style="background: #f0f0f0;"><th style="border:1px solid #999; padding:4px;">Tipe</th><th style="border:1px solid #999; padding:4px;">Maks</th><th style="border:1px solid #999; padding:4px;">Aturan Skor</th></tr></thead><tbody><tr><td style="border:1px solid #ccc; padding:4px; text-align:center;">PG</td><td style="border:1px solid #ccc; padding:4px; text-align:center;">1</td><td style="border:1px solid #ccc; padding:4px;">Benar = 1, Salah = 0</td></tr><tr><td style="border:1px solid #ccc; padding:4px; text-align:center;">PGK</td><td style="border:1px solid #ccc; padding:4px; text-align:center;">3</td><td style="border:1px solid #ccc; padding:4px;">Semua benar = 3 | Benar+Salah = 2 | Semua salah = 0</td></tr><tr><td style="border:1px solid #ccc; padding:4px; text-align:center;">BS</td><td style="border:1px solid #ccc; padding:4px; text-align:center;">3</td><td style="border:1px solid #ccc; padding:4px;">Benar semua = 3 | Salah 1 = 2 | Salah 2 = 1 | Salah semua = 0</td></tr></tbody></table><p style="margin: 3px 0; font-size: 10pt; text-align: center;">Potensi Poin Maksimal: <strong>${maxPoints}</strong> poin</p><div style="margin-top: 10px; display: flex; justify-content: center; align-items: center; gap: 8px; font-weight: bold; font-size: 11pt; padding: 5px 15px; border: 1px dashed #ccc; background: white;"><span>Nilai Siswa =</span><span style="display:inline-flex; flex-direction:column; text-align:center;"><span style="border-bottom:1px solid #000; padding:0 8px; font-weight:normal; font-size: 9pt;">(Poin Diperoleh)</span><span>${maxPoints}</span></span><span>x 100</span></div></div>`;
+    content += `<div style="max-width: 600px; margin: 30px auto 0; padding: 15px; border: 1px dashed #000; background-color: #fdfdfd; break-inside: avoid; page-break-inside: avoid;"><h4 style="margin-top: 5px; margin-bottom: 10px; font-size: 11pt; text-align: center;">📋 Panduan Penilaian</h4><table style="width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 10px;"><thead><tr style="background: #f0f0f0;"><th style="border:1px solid #999; padding:4px;">Tipe</th><th style="border:1px solid #999; padding:4px;">Maks</th><th style="border:1px solid #999; padding:4px;">Aturan Skor</th></tr></thead><tbody><tr><td style="border:1px solid #ccc; padding:4px; text-align:center;">PG</td><td style="border:1px solid #ccc; padding:4px; text-align:center;">1 / soal valid</td><td style="border:1px solid #ccc; padding:4px;">Benar = 1, Salah = 0</td></tr><tr><td style="border:1px solid #ccc; padding:4px; text-align:center;">PGK</td><td style="border:1px solid #ccc; padding:4px; text-align:center;">Dinamis</td><td style="border:1px solid #ccc; padding:4px;">Jumlah opsi benar yang valid (opsi kosong diabaikan)</td></tr><tr><td style="border:1px solid #ccc; padding:4px; text-align:center;">BS</td><td style="border:1px solid #ccc; padding:4px; text-align:center;">Dinamis</td><td style="border:1px solid #ccc; padding:4px;">Jumlah pernyataan berkunci B/S (tanpa kunci diabaikan)</td></tr></tbody></table><p style="margin: 3px 0; font-size: 10pt; text-align: center;">Potensi Poin Maksimal: <strong>${maxPoints}</strong> poin</p><div style="margin-top: 10px; display: flex; justify-content: center; align-items: center; gap: 8px; font-weight: bold; font-size: 11pt; padding: 5px 15px; border: 1px dashed #ccc; background: white;"><span>Nilai Siswa =</span><span style="display:inline-flex; flex-direction:column; text-align:center;"><span style="border-bottom:1px solid #000; padding:0 8px; font-weight:normal; font-size: 9pt;">(Poin Diperoleh)</span><span>${maxPoints}</span></span><span>x 100</span></div></div>`;
     openPrintWindow(content);
 }
 
