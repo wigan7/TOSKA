@@ -1,5 +1,20 @@
 // ===== LOGIC GURU: LOGIN, BUAT SOAL, EDIT, ANALISIS =====
 
+// Menandai apakah guru secara manual mengubah max points.
+const scoringMaxTouched = { pgk: false, bs: false };
+
+function bindScoringMaxTracking_() {
+    const bindOne = (id, key) => {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.maxTrackBound === '1') return;
+        el.addEventListener('input', () => { scoringMaxTouched[key] = true; });
+        el.dataset.maxTrackBound = '1';
+    };
+
+    bindOne('score-pgk-max', 'pgk');
+    bindOne('score-bs-max', 'bs');
+}
+
 // --- LOGIN ---
 function openGuruLogin() { document.getElementById('layer-login-guru').classList.remove('hidden'); }
 function closeGuruLogin() { document.getElementById('layer-login-guru').classList.add('hidden'); }
@@ -70,6 +85,35 @@ function getNumInputValue(id, fallback) {
 }
 
 function getScoringConfigFromInputs() {
+    bindScoringMaxTracking_();
+
+    const pgkMode = document.getElementById('score-pgk-mode')?.value || DEFAULT_SCORING_CONFIG.pgk.mode;
+    const bsMode = document.getElementById('score-bs-mode')?.value || DEFAULT_SCORING_CONFIG.bs.mode;
+
+    const pgkMinPoints = getNumInputValue('score-pgk-min', DEFAULT_SCORING_CONFIG.pgk.minPoints);
+    const bsMinPoints = getNumInputValue('score-bs-min', DEFAULT_SCORING_CONFIG.bs.minPoints);
+
+    const pgkSimpleAllCorrect = getNumInputValue('score-pgk-simple-all-correct', DEFAULT_SCORING_CONFIG.pgk.simpleAllCorrectPoints);
+    const pgkSimplePartial = getNumInputValue('score-pgk-simple-partial', DEFAULT_SCORING_CONFIG.pgk.simplePartialPoints);
+    const pgkSimpleAllWrong = getNumInputValue('score-pgk-simple-all-wrong', DEFAULT_SCORING_CONFIG.pgk.simpleAllWrongPoints);
+    const pgkSimpleBlank = getNumInputValue('score-pgk-simple-blank', DEFAULT_SCORING_CONFIG.pgk.simpleBlankPoints);
+
+    const bsSimpleAllCorrect = getNumInputValue('score-bs-simple-all-correct', DEFAULT_SCORING_CONFIG.bs.simpleAllCorrectPoints);
+    const bsSimplePartial = getNumInputValue('score-bs-simple-partial', DEFAULT_SCORING_CONFIG.bs.simplePartialPoints);
+    const bsSimpleAllWrong = getNumInputValue('score-bs-simple-all-wrong', DEFAULT_SCORING_CONFIG.bs.simpleAllWrongPoints);
+    const bsSimpleBlank = getNumInputValue('score-bs-simple-blank', DEFAULT_SCORING_CONFIG.bs.simpleBlankPoints);
+
+    let pgkMaxPoints = getNumInputValue('score-pgk-max', DEFAULT_SCORING_CONFIG.pgk.maxPoints);
+    let bsMaxPoints = getNumInputValue('score-bs-max', DEFAULT_SCORING_CONFIG.bs.maxPoints);
+
+    // Auto-sync maxPoints saat mode simple jika guru belum menyentuh input max secara manual.
+    if (pgkMode === 'simple' && !scoringMaxTouched.pgk) {
+        pgkMaxPoints = Math.max(pgkSimpleAllCorrect, pgkSimplePartial, pgkSimpleAllWrong, pgkSimpleBlank, pgkMinPoints);
+    }
+    if (bsMode === 'simple' && !scoringMaxTouched.bs) {
+        bsMaxPoints = Math.max(bsSimpleAllCorrect, bsSimplePartial, bsSimpleAllWrong, bsSimpleBlank, bsMinPoints);
+    }
+
     return normalizeScoringConfig({
         pg: {
             correctPoints: getNumInputValue('score-pg-correct', DEFAULT_SCORING_CONFIG.pg.correctPoints),
@@ -79,33 +123,37 @@ function getScoringConfigFromInputs() {
             minPoints: getNumInputValue('score-pg-min', DEFAULT_SCORING_CONFIG.pg.minPoints),
         },
         pgk: {
-            mode: document.getElementById('score-pgk-mode')?.value || DEFAULT_SCORING_CONFIG.pgk.mode,
+            mode: pgkMode,
             basePoints: getNumInputValue('score-pgk-base', DEFAULT_SCORING_CONFIG.pgk.basePoints),
             pointsPerCorrectSelection: getNumInputValue('score-pgk-correct', DEFAULT_SCORING_CONFIG.pgk.pointsPerCorrectSelection),
             pointsPerWrongSelection: getNumInputValue('score-pgk-wrong', DEFAULT_SCORING_CONFIG.pgk.pointsPerWrongSelection),
-            maxPoints: getNumInputValue('score-pgk-max', DEFAULT_SCORING_CONFIG.pgk.maxPoints),
-            simpleAllCorrectPoints: getNumInputValue('score-pgk-simple-all-correct', DEFAULT_SCORING_CONFIG.pgk.simpleAllCorrectPoints),
-            simplePartialPoints: getNumInputValue('score-pgk-simple-partial', DEFAULT_SCORING_CONFIG.pgk.simplePartialPoints),
-            simpleAllWrongPoints: getNumInputValue('score-pgk-simple-all-wrong', DEFAULT_SCORING_CONFIG.pgk.simpleAllWrongPoints),
-            simpleBlankPoints: getNumInputValue('score-pgk-simple-blank', DEFAULT_SCORING_CONFIG.pgk.simpleBlankPoints),
-            minPoints: getNumInputValue('score-pgk-min', DEFAULT_SCORING_CONFIG.pgk.minPoints),
+            maxPoints: pgkMaxPoints,
+            simpleAllCorrectPoints: pgkSimpleAllCorrect,
+            simplePartialPoints: pgkSimplePartial,
+            simpleAllWrongPoints: pgkSimpleAllWrong,
+            simpleBlankPoints: pgkSimpleBlank,
+            minPoints: pgkMinPoints,
         },
         bs: {
-            mode: document.getElementById('score-bs-mode')?.value || DEFAULT_SCORING_CONFIG.bs.mode,
+            mode: bsMode,
             basePoints: getNumInputValue('score-bs-base', DEFAULT_SCORING_CONFIG.bs.basePoints),
             pointsPerCorrectStatement: getNumInputValue('score-bs-correct', DEFAULT_SCORING_CONFIG.bs.pointsPerCorrectStatement),
             pointsPerWrongStatement: getNumInputValue('score-bs-wrong', DEFAULT_SCORING_CONFIG.bs.pointsPerWrongStatement),
-            maxPoints: getNumInputValue('score-bs-max', DEFAULT_SCORING_CONFIG.bs.maxPoints),
-            simpleAllCorrectPoints: getNumInputValue('score-bs-simple-all-correct', DEFAULT_SCORING_CONFIG.bs.simpleAllCorrectPoints),
-            simplePartialPoints: getNumInputValue('score-bs-simple-partial', DEFAULT_SCORING_CONFIG.bs.simplePartialPoints),
-            simpleAllWrongPoints: getNumInputValue('score-bs-simple-all-wrong', DEFAULT_SCORING_CONFIG.bs.simpleAllWrongPoints),
-            simpleBlankPoints: getNumInputValue('score-bs-simple-blank', DEFAULT_SCORING_CONFIG.bs.simpleBlankPoints),
-            minPoints: getNumInputValue('score-bs-min', DEFAULT_SCORING_CONFIG.bs.minPoints),
+            maxPoints: bsMaxPoints,
+            simpleAllCorrectPoints: bsSimpleAllCorrect,
+            simplePartialPoints: bsSimplePartial,
+            simpleAllWrongPoints: bsSimpleAllWrong,
+            simpleBlankPoints: bsSimpleBlank,
+            minPoints: bsMinPoints,
         }
     });
 }
 
 function setScoringInputs(scoringConfig) {
+    bindScoringMaxTracking_();
+    scoringMaxTouched.pgk = false;
+    scoringMaxTouched.bs = false;
+
     const cfg = normalizeScoringConfig(scoringConfig);
     const setVal = (id, value) => {
         const el = document.getElementById(id);
