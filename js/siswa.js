@@ -404,7 +404,7 @@ function scoreQuestion(q, ans, scoringConfig) {
             ? dedupeNumberArray(ans.map(normalizeIndex).filter(i => i !== null && validOptionIndexSet[i]))
             : [];
 
-        const dynamicMaxPoints = Math.max(validCorrectCount, minPoints);
+        const maxPoints = Math.max(cfg.pgk.maxPoints, minPoints);
 
         if (validCorrectCount === 0) {
             return { score: 0, maxPoints: 0 };
@@ -429,11 +429,9 @@ function scoreQuestion(q, ans, scoringConfig) {
                 else score = cfg.pgk.simplePartialPoints;
             }
 
-            const maxPoints = dynamicMaxPoints;
             return { score: clampScore(score, minPoints, maxPoints), maxPoints };
         }
 
-        const maxPoints = dynamicMaxPoints;
         let score = cfg.pgk.basePoints;
         studentSelections.forEach(optIdx => {
             if ((q.opsi || [])[optIdx] && (q.opsi || [])[optIdx].isTrue) score += cfg.pgk.pointsPerCorrectSelection;
@@ -451,7 +449,7 @@ function scoreQuestion(q, ans, scoringConfig) {
             return { score: 0, maxPoints: 0 };
         }
 
-        const dynamicMaxPoints = Math.max(keyedCount, minPoints);
+        const maxPoints = Math.max(cfg.bs.maxPoints, minPoints);
 
         if (cfg.bs.mode === 'simple') {
             const answers = (ans && typeof ans === 'object') ? ans : {};
@@ -475,14 +473,13 @@ function scoreQuestion(q, ans, scoringConfig) {
                 else score = cfg.bs.simplePartialPoints;
             }
 
-            const maxPoints = dynamicMaxPoints;
             return { score: clampScore(score, minPoints, maxPoints), maxPoints };
         }
 
-        const maxPoints = dynamicMaxPoints;
+        const answers = (ans && typeof ans === 'object') ? ans : {};
         let score = cfg.bs.basePoints;
         statements.forEach(entry => {
-            if (ans && ans[entry.idx] === entry.statement.kunci) score += cfg.bs.pointsPerCorrectStatement;
+            if (answers[entry.idx] === entry.statement.kunci) score += cfg.bs.pointsPerCorrectStatement;
             else score += cfg.bs.pointsPerWrongStatement;
         });
         return { score: clampScore(score, minPoints, maxPoints), maxPoints };
