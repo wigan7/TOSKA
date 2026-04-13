@@ -8,11 +8,11 @@ compatibility_date = "2024-01-01"
 
 # Development environment
 [env.development]
-vars = { VITE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec" }
+vars = { VITE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyGmHTBU7NwTrPldCD4hTj_Dfj-1yrJmVDA-963fYlV_lvv3E1msEBQ4Zv5N6TdJNdj/exec" }
 
 # Production environment
 [env.production]
-vars = { VITE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-WjPt_OloBp8k5tCIwJCRlQgNN-hSO3pAGKJFxwVzkLWlLYhsfY4xxf30WGjlViUj/exec" }
+vars = { VITE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyGmHTBU7NwTrPldCD4hTj_Dfj-1yrJmVDA-963fYlV_lvv3E1msEBQ4Zv5N6TdJNdj/exec" }
 
 # Build configuration
 [build]

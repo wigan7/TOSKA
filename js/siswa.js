@@ -103,6 +103,7 @@ async function mulaiUjian() {
 
         // Reset submit state in case user starts a new exam session without full reload.
         isSubmitting = false;
+        isExamSubmitted = false;
         const submitLayer = document.getElementById('layer-submit-loading');
         if (submitLayer) submitLayer.classList.add('hidden');
         const finishBtn = document.getElementById('btn-finish');
@@ -140,6 +141,7 @@ async function mulaiUjian() {
 
         document.getElementById('exam-title-display').innerText = data.judul;
         document.getElementById('student-name-display').innerText = nama;
+        cleanupObsoleteTimerKeys(resolvedKode, noPeserta, nama);
         initTimer(data.durasi, resolvedKode, nama);
         navTo('layer-siswa-exam');
         renderQuestion();
@@ -185,19 +187,86 @@ async function mulaiUjian() {
 }
 
 function initTimer(durationMinutes, kode, nama) {
+    const noPeserta = String(document.getElementById('siswa-no-peserta')?.value || '').trim().toUpperCase();
+    const namaNormalized = String(nama || '').trim().toUpperCase();
+    const kodeNormalized = String(kode || '').trim().toUpperCase();
+    const durationSec = Math.max(1, Math.floor(Number(durationMinutes) * 60) || 0);
+    const sessionKey = `tos_timer_${kodeNormalized}_${noPeserta}`;
+    const legacyKey = `tos_timer_${kodeNormalized}_${namaNormalized}`;
+
     clearInterval(timerInterval);
-    const sessionKey = `tos_timer_${kode}_${nama}`;
+
     const now = Math.floor(Date.now() / 1000);
-    let endTime = localStorage.getItem(sessionKey);
-    if (!endTime || endTime < now) { endTime = now + (durationMinutes * 60); localStorage.setItem(sessionKey, endTime); }
+    let timerState = null;
+
+    try {
+        const raw = localStorage.getItem(sessionKey);
+        if (raw) timerState = JSON.parse(raw);
+    } catch (e) {
+        timerState = null;
+    }
+
+    if (!timerState) {
+        const legacyRaw = localStorage.getItem(legacyKey);
+        const legacyEnd = Number(legacyRaw);
+        if (Number.isFinite(legacyEnd) && legacyEnd > now) {
+            timerState = {
+                endTime: legacyEnd,
+                startedAt: now,
+                durationSec: durationSec,
+                kode: kodeNormalized,
+                noPeserta: noPeserta
+            };
+        }
+    }
+
+    if (!timerState || typeof timerState !== 'object') {
+        timerState = {
+            endTime: now + durationSec,
+            startedAt: now,
+            durationSec: durationSec,
+            kode: kodeNormalized,
+            noPeserta: noPeserta
+        };
+    }
+
+    const parsedEndTime = Number(timerState.endTime);
+    const isIdentityMismatch = String(timerState.kode || '') !== kodeNormalized || String(timerState.noPeserta || '') !== noPeserta;
+    if (!Number.isFinite(parsedEndTime) || parsedEndTime <= now || isIdentityMismatch) {
+        timerState = {
+            endTime: now + durationSec,
+            startedAt: now,
+            durationSec: durationSec,
+            kode: kodeNormalized,
+            noPeserta: noPeserta
+        };
+    }
+
+    localStorage.setItem(sessionKey, JSON.stringify(timerState));
+    localStorage.removeItem(legacyKey);
+
+    const verifyExpiryAndSubmit = () => {
+        if (isSubmitting || isExamSubmitted) return;
+        setTimeout(() => {
+            if (isSubmitting || isExamSubmitted) return;
+            const currentNow = Math.floor(Date.now() / 1000);
+            const recheckRemaining = Number(timerState.endTime) - currentNow;
+            if (recheckRemaining <= 0) {
+                clearInterval(timerInterval);
+                document.getElementById('timer').innerText = "00:00";
+                timeRemainingSeconds = 0;
+                localStorage.removeItem(sessionKey);
+                showToast("Waktu Habis! Jawaban dikirim otomatis.", 'info');
+                submitExam(true);
+            }
+        }, 1500);
+    };
+
     const update = () => {
-        const remaining = endTime - Math.floor(Date.now() / 1000);
+        const remaining = Number(timerState.endTime) - Math.floor(Date.now() / 1000);
+        timeRemainingSeconds = Math.max(0, remaining);
         if (remaining <= 0) {
-            clearInterval(timerInterval);
-            document.getElementById('timer').innerText = "00:00";
-            localStorage.removeItem(sessionKey);
-            showToast("Waktu Habis! Jawaban dikirim otomatis.", 'info');
-            submitExam(true);
+            verifyExpiryAndSubmit();
         } else {
             updateTimerDisplay(remaining);
             const container = document.getElementById('timer-container');
@@ -209,6 +278,33 @@ function initTimer(durationMinutes, kode, nama) {
     };
     update();
     timerInterval = setInterval(update, 1000);
+}
+
+function cleanupObsoleteTimerKeys(kode, noPeserta, nama) {
+    const kodeNormalized = String(kode || '').trim().toUpperCase();
+    const noPesertaNormalized = String(noPeserta || '').trim().toUpperCase();
+    const namaNormalized = String(nama || '').trim().toUpperCase();
+    if (!noPesertaNormalized) return;
+
+    const currentKey = `tos_timer_${kodeNormalized}_${noPesertaNormalized}`;
+    const currentLegacyKey = `tos_timer_${kodeNormalized}_${namaNormalized}`;
+
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith('tos_timer_')) continue;
+        if (key === currentKey || key === currentLegacyKey) continue;
+
+        // Housekeeping: hapus timer milik peserta yang sama pada kode soal lain.
+        if (key.endsWith(`_${noPesertaNormalized}`)) {
+            localStorage.removeItem(key);
+            continue;
+        }
+
+        // Hapus juga key legacy berbasis nama agar collision lama tidak muncul lagi.
+        if (namaNormalized && key.endsWith(`_${namaNormalized}`)) {
+            localStorage.removeItem(key);
+        }
+    }
 }
 
 function updateTimerDisplay(seconds) {
@@ -490,9 +586,13 @@ function scoreQuestion(q, ans, scoringConfig) {
 
 // --- SUBMIT ---
 function submitExam(isAutoSubmit) {
+    if (isSubmitting || isExamSubmitted) return;
+    isExamSubmitted = true;
+
     recordTimeSpent();
     const kode = document.getElementById('siswa-kode').value.toUpperCase(), nama = document.getElementById('siswa-nama').value, noPeserta = document.getElementById('siswa-no-peserta').value;
-    localStorage.removeItem(`tos_timer_${kode}_${nama}`);
+    localStorage.removeItem(`tos_timer_${kode}_${String(noPeserta || '').trim().toUpperCase()}`);
+    localStorage.removeItem(`tos_timer_${kode}_${String(nama || '').trim().toUpperCase()}`);
     let totalStudentPoints = 0, maxPossiblePoints = 0;
     questions.forEach((q, idx) => {
         const ans = studentAnswers[idx];

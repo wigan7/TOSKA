@@ -703,7 +703,8 @@ function analisisHasil(kodeSoal, selectedSchools = null) {
     const studentScoresList = [];
     
     submissions.forEach(sub => {
-      const score = parseInt(sub[4]) || 0;
+      const rawScore = Number(sub[4]);
+      const score = Number.isFinite(rawScore) ? rawScore : 0;
       totalScore += score;
       
       let logData = null;
