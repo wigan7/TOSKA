@@ -194,6 +194,14 @@
                             placeholder="Cth: UJIANMTK — Kosongkan jika soal tidak dikelompokkan">
                         <p class="mt-1 text-xs text-gray-400">Isi jika soal ini merupakan bagian dari suatu ujian. Siswa cukup input kode ujian untuk mendapat soal acak dalam kelompok ini.</p>
                     </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Status Pengerjaan Soal</label>
+                        <select id="status-soal-buka" class="w-full p-2 border rounded-lg focus:border-sd-primary outline-none bg-white">
+                            <option value="open">Dibuka (Siswa bisa mengerjakan)</option>
+                            <option value="closed">Ditutup (Tidak bisa dikerjakan, tetap bisa dianalisis)</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-400">Jika ditutup, siswa tidak bisa memulai/mengirim ujian untuk kode soal ini.</p>
+                    </div>
                 </div>
                     <h4 class="font-bold text-gray-600 mb-3 text-sm">PEDOMAN PENSKORAN (MANUAL)</h4>
                     <div class="grid md:grid-cols-3 gap-4 text-xs">

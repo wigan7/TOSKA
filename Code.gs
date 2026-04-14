@@ -34,6 +34,9 @@ function doPost(e) {
       case 'ambilSoal':
         result = ambilSoal(args[0]);
         break;
+      case 'ambilSoalSiswa':
+        result = ambilSoalSiswa(args[0]);
+        break;
       case 'simpanNilai':
         result = simpanNilai(args[0]);
         break;
@@ -156,14 +159,24 @@ function normalizeScoringConfig_(scoring) {
   return normalized;
 }
 
+function normalizeIsOpen_(value) {
+  if (value === undefined || value === null || value === '') return true;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const text = String(value).trim().toLowerCase();
+  if (text === 'false' || text === '0' || text === 'no' || text === 'closed' || text === 'tutup') return false;
+  return true;
+}
+
 function parseSoalPackage_(jsonString) {
   const parsed = JSON.parse(jsonString);
   if (Array.isArray(parsed)) {
-    return { konten: parsed, scoring: normalizeScoringConfig_(null) };
+    return { konten: parsed, scoring: normalizeScoringConfig_(null), isOpen: true };
   }
   return {
     konten: parsed.konten || [],
-    scoring: normalizeScoringConfig_(parsed.scoring)
+    scoring: normalizeScoringConfig_(parsed.scoring),
+    isOpen: normalizeIsOpen_(parsed.isOpen)
   };
 }
 
@@ -353,7 +366,8 @@ function simpanSoal(data, isEdit) {
   // Memecah JSON menjadi array chunk maksimal 45.000 karakter per sel
   const jsonString = JSON.stringify({
     konten: data.konten,
-    scoring: normalizeScoringConfig_(data.scoring)
+    scoring: normalizeScoringConfig_(data.scoring),
+    isOpen: normalizeIsOpen_(data.isOpen)
   });
   const maxChunkLength = 45000;
   const maxChunks = 11; // Kolom F sampai P (setelah kode_ujian di kolom E)
@@ -493,7 +507,8 @@ function ambilSoal(kodeSoal) {
           durasi: rows[i][3],
           kode_ujian: String(rows[i][4] || '').trim().toUpperCase(),
           konten: paket.konten,
-          scoring: paket.scoring
+          scoring: paket.scoring,
+          isOpen: normalizeIsOpen_(paket.isOpen)
         };
         
         // 2. Simpan ke Cache dengan metode Chunking
@@ -525,6 +540,15 @@ function ambilSoal(kodeSoal) {
   return { status: 'error', message: 'Soal tidak ditemukan.' };
 }
 
+function ambilSoalSiswa(kodeSoal) {
+  const result = ambilSoal(kodeSoal);
+  if (!result || result.status !== 'sukses') return result;
+  if (!normalizeIsOpen_(result.isOpen)) {
+    return { status: 'error', message: 'Kode soal ini sedang ditutup oleh guru.' };
+  }
+  return result;
+}
+
 
 function simpanNilai(data) {
   // 1) Validasi dan normalisasi payload (cepat, di luar lock)
@@ -543,6 +567,15 @@ function simpanNilai(data) {
 
   if (!nama || !kelas || !kodeSoal || !sekolah || !noPeserta || !Number.isFinite(nilaiNumber)) {
     return { status: 'gagal', pesan: 'Data siswa tidak lengkap atau tidak valid.' };
+  }
+
+  // Guard backend: kode soal yang ditutup tidak menerima submit baru.
+  const soalInfo = ambilSoal(kodeSoal);
+  if (!soalInfo || soalInfo.status !== 'sukses') {
+    return { status: 'gagal', pesan: 'Kode soal tidak ditemukan.' };
+  }
+  if (!normalizeIsOpen_(soalInfo.isOpen)) {
+    return { status: 'gagal', pesan: 'Ujian untuk kode soal ini sudah ditutup oleh guru.' };
   }
 
   let jawabanStr = '';
@@ -788,15 +821,37 @@ function ambilSoalByKodeUjian(kodeUjian, noPeserta) {
 
   // Kumpulkan semua kode_soal yang tergabung dalam kode_ujian ini (Col E = index 4)
   const daftarKodeSoal = [];
+  const daftarKodeSoalTerbuka = [];
   for (let i = 1; i < rows.length; i++) {
     const kodeUjianDiSheet = String(rows[i][4] || '').trim().toUpperCase();
     if (kodeUjianDiSheet === kodeNormal) {
-      daftarKodeSoal.push(String(rows[i][1]).trim().toUpperCase());
+      const kodeSoal = String(rows[i][1]).trim().toUpperCase();
+      daftarKodeSoal.push(kodeSoal);
+      try {
+        const startCol = getJsonStartColIndex_(rows[i]);
+        const endCol = startCol + 10;
+        let jsonString = '';
+        for (let col = startCol; col <= endCol; col++) {
+          const chunk = rows[i][col];
+          if (chunk !== undefined && chunk !== null && chunk !== '') jsonString += String(chunk);
+          else break;
+        }
+        const paket = parseSoalPackage_(jsonString);
+        if (normalizeIsOpen_(paket.isOpen)) {
+          daftarKodeSoalTerbuka.push(kodeSoal);
+        }
+      } catch (e) {
+        // Abaikan baris rusak agar tidak menggagalkan varian lain.
+      }
     }
   }
 
   if (daftarKodeSoal.length === 0) {
     return { status: 'error', message: 'Kode ujian tidak ditemukan atau belum ada soal yang terdaftar.' };
+  }
+
+  if (daftarKodeSoalTerbuka.length === 0) {
+    return { status: 'error', message: 'Semua varian pada kode ujian ini sedang ditutup oleh guru.' };
   }
 
   // Kunci varian per peserta agar recovery konsisten lintas sesi.
@@ -806,7 +861,7 @@ function ambilSoalByKodeUjian(kodeUjian, noPeserta) {
       const props = PropertiesService.getScriptProperties();
       const mapKey = 'ujian_map_' + kodeNormal + '_' + noPesertaNormal;
       const existingMap = props.getProperty(mapKey);
-      if (existingMap && daftarKodeSoal.includes(existingMap)) {
+      if (existingMap && daftarKodeSoalTerbuka.includes(existingMap)) {
         mappedKode = existingMap;
       }
     } catch (e) {
@@ -815,7 +870,7 @@ function ambilSoalByKodeUjian(kodeUjian, noPeserta) {
   }
 
   // Pilih satu kode_soal secara acak dari daftar
-  const randomKode = mappedKode || daftarKodeSoal[Math.floor(Math.random() * daftarKodeSoal.length)];
+  const randomKode = mappedKode || daftarKodeSoalTerbuka[Math.floor(Math.random() * daftarKodeSoalTerbuka.length)];
 
   // Simpan mapping jika belum ada agar percobaan berikutnya konsisten.
   if (!mappedKode && noPesertaNormal) {

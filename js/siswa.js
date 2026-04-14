@@ -160,7 +160,7 @@ async function mulaiUjian() {
         try {
             if (kodeSoal) {
                 // Siswa input kode soal → ambil soal spesifik
-                const response = await fetchAppsScriptAPI('ambilSoal', kodeSoal);
+                const response = await fetchAppsScriptAPI('ambilSoalSiswa', kodeSoal);
                 if (response.status === 'sukses') {
                     handleExamData({ judul: response.judul, durasi: response.durasi || 90, soal: response.konten, scoring: response.scoring }, kodeSoal, '');
                 } else {

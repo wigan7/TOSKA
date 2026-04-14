@@ -73,6 +73,8 @@ function setEditMode(active, kode = '') {
         document.getElementById('judul-ujian').value = '';
         document.getElementById('kode-ujian-buat').value = '';
         document.getElementById('durasi-ujian').value = '60';
+        const statusEl = document.getElementById('status-soal-buka');
+        if (statusEl) statusEl.value = 'open';
         document.getElementById('container-soal').innerHTML = '';
         setScoringInputs(DEFAULT_SCORING_CONFIG);
     }
@@ -262,6 +264,8 @@ function handleEditLoad() {
         document.getElementById('judul-ujian').value = data.judul;
         document.getElementById('kode-ujian-buat').value = data.kode_ujian || '';
         document.getElementById('durasi-ujian').value = data.durasi;
+        const statusEl = document.getElementById('status-soal-buka');
+        if (statusEl) statusEl.value = (data.isOpen === false) ? 'closed' : 'open';
         setScoringInputs(data.scoring || DEFAULT_SCORING_CONFIG);
         document.getElementById('container-soal').innerHTML = '';
         if (data.konten && Array.isArray(data.konten)) {
@@ -599,6 +603,7 @@ function getSoalDataFromForm() {
         judul,
         kode_soal: kode,
         kode_ujian: (document.getElementById('kode-ujian-buat')?.value || '').trim().toUpperCase(),
+        isOpen: (document.getElementById('status-soal-buka')?.value || 'open') !== 'closed',
         durasi: parseInt(durasi),
         scoring: getScoringConfigFromInputs(),
         konten: dataSoal
